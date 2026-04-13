@@ -1,0 +1,990 @@
+{
+  "components": {
+    "text_block": {
+      "id": "text_block",
+      "name": "Text Block",
+      "type": "text_block",
+      "variant": "default",
+      "status": "system",
+      "description": "Primary prose answer block — renders the main clinical narrative.",
+      "tags": [
+        "text",
+        "prose",
+        "primary",
+        "answer"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "typography",
+          "colors",
+          "spacing_rules"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "typography": "scale.body (text-body, 16px/1.5 lh)",
+          "color": "colors.neutral.darkSky for text",
+          "spacing": "spacing_rules.semanticTokens.componentMarginTop.text_block = 0"
+        }
+      },
+      "rules": {
+        "typography": "text-body",
+        "color_token": "var(--dark-sky)",
+        "bg_token": "transparent",
+        "line_height": 1.6,
+        "max_width": "100%",
+        "margin_bottom": 16,
+        "supports_markdown": true,
+        "confidence_threshold_for_display": 0
+      },
+      "preview_props": {
+        "content": "# Celiac Disease Antibody Panel\n\nBased on the clinical presentation, this is the recommended first-line evaluation. Testing should include IgA tTG antibody with reflex to IgA endomysial antibody for confirmation. Total IgA should be measured concurrently to rule out selective IgA deficiency, which occurs in ~2–3% of celiac patients and causes false-negative tTG results."
+      },
+      "conversation": [
+        {
+          "role": "user",
+          "content": "Make the title more prominent and rerender the element",
+          "timestamp": "2026-04-04T16:27:14.505442+00:00"
+        },
+        {
+          "role": "assistant",
+          "content": "**Changes applied:** Upgraded typography to heading-3, increased color prominence to primary, added title via markdown heading, increased bottom margin.\n\nElevating the text block's visual hierarchy with a heading-level typography and primary color makes the clinical recommendation more prominent while the markdown heading structure creates visual separation and improves scanability for clinicians reviewing the prose answer.",
+          "timestamp": "2026-04-04T16:27:17.129076+00:00"
+        },
+        {
+          "role": "user",
+          "content": "Revert to the original",
+          "timestamp": "2026-04-04T16:27:53.620155+00:00"
+        },
+        {
+          "role": "assistant",
+          "content": "**Changes applied:** Reverted typography to text-body and color to dark-sky per original spec\n\nDesigner requested reversion to original design. Typography restored from text-heading-3 to text-body (16px/1.5 line height), and color token reverted from primary to dark-sky as documented in source_basis token references.",
+          "timestamp": "2026-04-04T16:27:55.507069+00:00"
+        }
+      ],
+      "versions": [
+        {
+          "version_id": "461abe76",
+          "timestamp": "2026-04-03T01:57:28.192342+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "typography": "text-body",
+            "color_token": "var(--dark-sky)",
+            "bg_token": "transparent",
+            "line_height": 1.6,
+            "max_width": "100%",
+            "margin_bottom": 12,
+            "supports_markdown": true,
+            "confidence_threshold_for_display": 0
+          },
+          "preview_props_snapshot": {
+            "content": "Based on the clinical presentation, **Celiac Disease Antibody Panel** is the recommended first-line evaluation. Testing should include IgA tTG antibody with reflex to IgA endomysial antibody for confirmation. Total IgA should be measured concurrently to rule out selective IgA deficiency, which occurs in ~2–3% of celiac patients and causes false-negative tTG results."
+          }
+        },
+        {
+          "version_id": "292b4789",
+          "timestamp": "2026-04-04T16:27:17.122866+00:00",
+          "summary": "Upgraded typography to heading-3, increased color prominence to primary, added title via markdown heading, increased bottom margin.",
+          "rules_snapshot": {
+            "typography": "text-heading-3",
+            "color_token": "var(--primary)",
+            "bg_token": "transparent",
+            "line_height": 1.6,
+            "max_width": "100%",
+            "margin_bottom": 16,
+            "supports_markdown": true,
+            "confidence_threshold_for_display": 0
+          },
+          "preview_props_snapshot": {
+            "content": "# Celiac Disease Antibody Panel\n\nBased on the clinical presentation, this is the recommended first-line evaluation. Testing should include IgA tTG antibody with reflex to IgA endomysial antibody for confirmation. Total IgA should be measured concurrently to rule out selective IgA deficiency, which occurs in ~2–3% of celiac patients and causes false-negative tTG results."
+          }
+        },
+        {
+          "version_id": "a9864fdb",
+          "timestamp": "2026-04-04T16:27:55.502473+00:00",
+          "summary": "Reverted typography to text-body and color to dark-sky per original spec",
+          "rules_snapshot": {
+            "typography": "text-body",
+            "color_token": "var(--dark-sky)",
+            "bg_token": "transparent",
+            "line_height": 1.6,
+            "max_width": "100%",
+            "margin_bottom": 16,
+            "supports_markdown": true,
+            "confidence_threshold_for_display": 0
+          },
+          "preview_props_snapshot": {
+            "content": "# Celiac Disease Antibody Panel\n\nBased on the clinical presentation, this is the recommended first-line evaluation. Testing should include IgA tTG antibody with reflex to IgA endomysial antibody for confirmation. Total IgA should be measured concurrently to rule out selective IgA deficiency, which occurs in ~2–3% of celiac patients and causes false-negative tTG results."
+          }
+        }
+      ],
+      "updated_at": "2026-04-04T16:27:55.502375+00:00"
+    },
+    "recommendation_card": {
+      "id": "recommendation_card",
+      "name": "Recommendation Card",
+      "type": "recommendation_card",
+      "variant": "primary",
+      "status": "system",
+      "description": "Highlighted test recommendation with priority badge, rationale, and ARUP order code.",
+      "tags": [
+        "recommendation",
+        "test",
+        "order",
+        "priority",
+        "card"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "typography",
+          "colors",
+          "card_rules",
+          "spacing_rules",
+          "buttons"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "card": "card_rules.variants.semantic — 4px left border in priority colour",
+          "color": "colors.brand.primary (high) / colors.neutral.labBlue (moderate)",
+          "spacing": "spacing_rules.semanticTokens.cardPadding = 24px"
+        }
+      },
+      "rules": {
+        "border_left_width": 4,
+        "border_left_color_high": "var(--primary)",
+        "border_left_color_moderate": "var(--lab-blue)",
+        "border_left_color_low": "var(--accent3)",
+        "bg_token": "var(--white)",
+        "padding": "var(--card-padding)",
+        "card_radius": "var(--card-radius)",
+        "show_order_code": true,
+        "show_turnaround": true,
+        "show_rationale": true,
+        "priority_badge_style": "pill"
+      },
+      "preview_props": {
+        "test_name": "Celiac Disease Antibody Panel",
+        "order_code": "CELIAC",
+        "priority": "high",
+        "rationale": "First-line serological screen with >95% sensitivity for active celiac disease on a gluten-containing diet.",
+        "turnaround": "1–3 days",
+        "components": [
+          "tTG IgA",
+          "Endomysial Ab IgA",
+          "Total IgA"
+        ],
+        "special_instructions": "Patient must be on gluten-containing diet for accurate results."
+      },
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "a9f5bf34",
+          "timestamp": "2026-04-03T01:57:28.192727+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "border_left_width": 4,
+            "border_left_color_high": "var(--primary)",
+            "border_left_color_moderate": "var(--lab-blue)",
+            "border_left_color_low": "var(--accent3)",
+            "bg_token": "var(--white)",
+            "padding": "var(--card-padding)",
+            "card_radius": "var(--card-radius)",
+            "show_order_code": true,
+            "show_turnaround": true,
+            "show_rationale": true,
+            "priority_badge_style": "pill"
+          },
+          "preview_props_snapshot": {
+            "test_name": "Celiac Disease Antibody Panel",
+            "order_code": "CELIAC",
+            "priority": "high",
+            "rationale": "First-line serological screen with >95% sensitivity for active celiac disease on a gluten-containing diet.",
+            "turnaround": "1–3 days",
+            "components": [
+              "tTG IgA",
+              "Endomysial Ab IgA",
+              "Total IgA"
+            ],
+            "special_instructions": "Patient must be on gluten-containing diet for accurate results."
+          }
+        }
+      ]
+    },
+    "table": {
+      "id": "table",
+      "name": "Data Table",
+      "type": "table",
+      "variant": "zebra",
+      "status": "system",
+      "description": "Zebra-striped comparison table for test panels, reference ranges, and structured data.",
+      "tags": [
+        "table",
+        "comparison",
+        "data",
+        "grid",
+        "zebra"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "table",
+          "colors",
+          "typography",
+          "spacing_rules"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "table": "table.stripes, table.header, table.cell, table.linkStyle",
+          "color": "colors.background.salt (even rows) / colors.background.primary (odd)",
+          "spacing": "table.cell.padding = 8px"
+        }
+      },
+      "rules": {
+        "stripe_even_bg": "var(--bg-salt)",
+        "stripe_odd_bg": "var(--white)",
+        "header_bg": "var(--primary)",
+        "header_color": "var(--white)",
+        "header_font_weight": 700,
+        "cell_padding": "8px 12px",
+        "border_color": "var(--accent3)",
+        "font_size": 13,
+        "sticky_header": true,
+        "max_height_px": 400
+      },
+      "preview_props": {
+        "headers": [
+          "Test",
+          "Sensitivity",
+          "Specificity",
+          "Turnaround",
+          "Order Code"
+        ],
+        "rows": [
+          [
+            "tTG IgA",
+            "95%",
+            "97%",
+            "1–2 days",
+            "TTGA"
+          ],
+          [
+            "Endomysial Ab IgA",
+            "85%",
+            "99%",
+            "3–5 days",
+            "EMA"
+          ],
+          [
+            "Deamidated Gliadin IgG",
+            "80%",
+            "98%",
+            "1–2 days",
+            "DGLIGG"
+          ],
+          [
+            "Total IgA",
+            "N/A",
+            "N/A",
+            "1 day",
+            "IGA"
+          ]
+        ],
+        "caption": "Celiac Serological Tests Comparison"
+      },
+      "conversation": [
+        {
+          "role": "user",
+          "content": "Make the title more prominent",
+          "timestamp": "2026-04-09T19:49:06.525320+00:00"
+        },
+        {
+          "role": "assistant",
+          "content": "**Changes applied:** Increased header prominence with bolder weight and primary color\n\nBoosting header font-weight from 600 to 700 and switching background to primary creates stronger visual hierarchy. Title capitalization improves readability and professionalism for lab data contexts.",
+          "timestamp": "2026-04-09T19:49:08.647300+00:00"
+        }
+      ],
+      "versions": [
+        {
+          "version_id": "60ea3921",
+          "timestamp": "2026-04-03T01:57:28.192732+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "stripe_even_bg": "var(--bg-salt)",
+            "stripe_odd_bg": "var(--white)",
+            "header_bg": "var(--secondary)",
+            "header_color": "var(--white)",
+            "header_font_weight": 600,
+            "cell_padding": "8px 12px",
+            "border_color": "var(--accent3)",
+            "font_size": 13,
+            "sticky_header": true,
+            "max_height_px": 400
+          },
+          "preview_props_snapshot": {
+            "headers": [
+              "Test",
+              "Sensitivity",
+              "Specificity",
+              "Turnaround",
+              "Order Code"
+            ],
+            "rows": [
+              [
+                "tTG IgA",
+                "95%",
+                "97%",
+                "1–2 days",
+                "TTGA"
+              ],
+              [
+                "Endomysial Ab IgA",
+                "85%",
+                "99%",
+                "3–5 days",
+                "EMA"
+              ],
+              [
+                "Deamidated Gliadin IgG",
+                "80%",
+                "98%",
+                "1–2 days",
+                "DGLIGG"
+              ],
+              [
+                "Total IgA",
+                "N/A",
+                "N/A",
+                "1 day",
+                "IGA"
+              ]
+            ],
+            "caption": "Celiac serological tests comparison"
+          }
+        },
+        {
+          "version_id": "7f3539d9",
+          "timestamp": "2026-04-09T19:49:08.643430+00:00",
+          "summary": "Increased header prominence with bolder weight and primary color",
+          "rules_snapshot": {
+            "stripe_even_bg": "var(--bg-salt)",
+            "stripe_odd_bg": "var(--white)",
+            "header_bg": "var(--primary)",
+            "header_color": "var(--white)",
+            "header_font_weight": 700,
+            "cell_padding": "8px 12px",
+            "border_color": "var(--accent3)",
+            "font_size": 13,
+            "sticky_header": true,
+            "max_height_px": 400
+          },
+          "preview_props_snapshot": {
+            "headers": [
+              "Test",
+              "Sensitivity",
+              "Specificity",
+              "Turnaround",
+              "Order Code"
+            ],
+            "rows": [
+              [
+                "tTG IgA",
+                "95%",
+                "97%",
+                "1–2 days",
+                "TTGA"
+              ],
+              [
+                "Endomysial Ab IgA",
+                "85%",
+                "99%",
+                "3–5 days",
+                "EMA"
+              ],
+              [
+                "Deamidated Gliadin IgG",
+                "80%",
+                "98%",
+                "1–2 days",
+                "DGLIGG"
+              ],
+              [
+                "Total IgA",
+                "N/A",
+                "N/A",
+                "1 day",
+                "IGA"
+              ]
+            ],
+            "caption": "Celiac Serological Tests Comparison"
+          }
+        }
+      ],
+      "updated_at": "2026-04-09T19:49:08.642941+00:00"
+    },
+    "algorithm_flow": {
+      "id": "algorithm_flow",
+      "name": "Algorithm Flow",
+      "type": "algorithm_flow",
+      "variant": "vertical",
+      "status": "system",
+      "description": "Diagnostic decision-tree visualisation built from ARUP algorithm documents.",
+      "tags": [
+        "algorithm",
+        "flowchart",
+        "decision",
+        "tree",
+        "diagnostic"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec · AlgorithmRenderer v1.1",
+        "design_tokens_used": [
+          "colors",
+          "spacing_rules",
+          "card_rules"
+        ],
+        "sample_assets_used": [
+          "celiac_algorithm.json"
+        ],
+        "token_refs": {
+          "layout": "layout_mode: vertical | tree | grouped_branch_layout | image_guided",
+          "color": "node type → color mapping via colors.brand / colors.semantic",
+          "spacing": "spacing_rules.algorithmSpacing.*"
+        }
+      },
+      "rules": {
+        "node_styles": {
+          "start": {
+            "bg": "var(--secondary)",
+            "color": "var(--white)",
+            "border_radius": "50vh"
+          },
+          "end": {
+            "bg": "var(--primary)",
+            "color": "var(--white)",
+            "border_radius": "50vh"
+          },
+          "test": {
+            "bg": "var(--lab-blue)",
+            "color": "var(--white)",
+            "border_radius": 8
+          },
+          "decision": {
+            "bg": "var(--white)",
+            "color": "var(--dark-sky)",
+            "border_radius": 6,
+            "border": "2px solid var(--primary)"
+          },
+          "result": {
+            "bg": "var(--bg-salt)",
+            "color": "var(--dark-sky)",
+            "border_radius": 6
+          }
+        },
+        "edge_color": "var(--accent3)",
+        "edge_label_font_size": 10,
+        "layout_modes": [
+          "vertical",
+          "tree",
+          "grouped_branch_layout",
+          "image_guided"
+        ],
+        "default_layout": "vertical",
+        "node_min_width_px": 160,
+        "canvas_padding_px": 24
+      },
+      "preview_props": {
+        "title": "Celiac Disease Diagnostic Algorithm",
+        "layout_mode": "vertical",
+        "nodes": [
+          {
+            "id": "n1",
+            "label": "Clinical suspicion of celiac disease",
+            "type": "start"
+          },
+          {
+            "id": "n2",
+            "label": "Measure Total IgA + tTG IgA",
+            "type": "test"
+          },
+          {
+            "id": "n3",
+            "label": "IgA sufficient?",
+            "type": "decision"
+          },
+          {
+            "id": "n4",
+            "label": "tTG IgA positive?",
+            "type": "decision"
+          },
+          {
+            "id": "n5",
+            "label": "Measure Deamidated Gliadin IgG (DGP IgG)",
+            "type": "test"
+          },
+          {
+            "id": "n6",
+            "label": "Confirm with Endomysial Ab IgA",
+            "type": "test"
+          },
+          {
+            "id": "n7",
+            "label": "Refer for duodenal biopsy",
+            "type": "result"
+          },
+          {
+            "id": "n8",
+            "label": "Celiac disease unlikely — consider alternatives",
+            "type": "end"
+          }
+        ],
+        "edges": [
+          {
+            "from": "n1",
+            "to": "n2"
+          },
+          {
+            "from": "n2",
+            "to": "n3"
+          },
+          {
+            "from": "n3",
+            "to": "n4",
+            "label": "Yes"
+          },
+          {
+            "from": "n3",
+            "to": "n5",
+            "label": "No (IgA deficient)"
+          },
+          {
+            "from": "n4",
+            "to": "n6",
+            "label": "Positive"
+          },
+          {
+            "from": "n4",
+            "to": "n8",
+            "label": "Negative"
+          },
+          {
+            "from": "n5",
+            "to": "n6",
+            "label": "Positive"
+          },
+          {
+            "from": "n5",
+            "to": "n8",
+            "label": "Negative"
+          },
+          {
+            "from": "n6",
+            "to": "n7"
+          }
+        ]
+      },
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "08c43af5",
+          "timestamp": "2026-04-03T01:57:28.192738+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "node_styles": {
+              "start": {
+                "bg": "var(--secondary)",
+                "color": "var(--white)",
+                "border_radius": "50vh"
+              },
+              "end": {
+                "bg": "var(--primary)",
+                "color": "var(--white)",
+                "border_radius": "50vh"
+              },
+              "test": {
+                "bg": "var(--lab-blue)",
+                "color": "var(--white)",
+                "border_radius": 8
+              },
+              "decision": {
+                "bg": "var(--white)",
+                "color": "var(--dark-sky)",
+                "border_radius": 6,
+                "border": "2px solid var(--primary)"
+              },
+              "result": {
+                "bg": "var(--bg-salt)",
+                "color": "var(--dark-sky)",
+                "border_radius": 6
+              }
+            },
+            "edge_color": "var(--accent3)",
+            "edge_label_font_size": 10,
+            "layout_modes": [
+              "vertical",
+              "tree",
+              "grouped_branch_layout",
+              "image_guided"
+            ],
+            "default_layout": "vertical",
+            "node_min_width_px": 160,
+            "canvas_padding_px": 24
+          },
+          "preview_props_snapshot": {
+            "title": "Celiac Disease Diagnostic Algorithm",
+            "layout_mode": "vertical",
+            "nodes": [
+              {
+                "id": "n1",
+                "label": "Clinical suspicion of celiac disease",
+                "type": "start"
+              },
+              {
+                "id": "n2",
+                "label": "Measure Total IgA + tTG IgA",
+                "type": "test"
+              },
+              {
+                "id": "n3",
+                "label": "IgA sufficient?",
+                "type": "decision"
+              },
+              {
+                "id": "n4",
+                "label": "tTG IgA positive?",
+                "type": "decision"
+              },
+              {
+                "id": "n5",
+                "label": "Measure Deamidated Gliadin IgG (DGP IgG)",
+                "type": "test"
+              },
+              {
+                "id": "n6",
+                "label": "Confirm with Endomysial Ab IgA",
+                "type": "test"
+              },
+              {
+                "id": "n7",
+                "label": "Refer for duodenal biopsy",
+                "type": "result"
+              },
+              {
+                "id": "n8",
+                "label": "Celiac disease unlikely — consider alternatives",
+                "type": "end"
+              }
+            ],
+            "edges": [
+              {
+                "from": "n1",
+                "to": "n2"
+              },
+              {
+                "from": "n2",
+                "to": "n3"
+              },
+              {
+                "from": "n3",
+                "to": "n4",
+                "label": "Yes"
+              },
+              {
+                "from": "n3",
+                "to": "n5",
+                "label": "No (IgA deficient)"
+              },
+              {
+                "from": "n4",
+                "to": "n6",
+                "label": "Positive"
+              },
+              {
+                "from": "n4",
+                "to": "n8",
+                "label": "Negative"
+              },
+              {
+                "from": "n5",
+                "to": "n6",
+                "label": "Positive"
+              },
+              {
+                "from": "n5",
+                "to": "n8",
+                "label": "Negative"
+              },
+              {
+                "from": "n6",
+                "to": "n7"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "warning_block": {
+      "id": "warning_block",
+      "name": "Warning Block",
+      "type": "warning_block",
+      "variant": "default",
+      "status": "system",
+      "description": "Amber-accented callout for clinical conflicts, ordering cautions, and evidence gaps.",
+      "tags": [
+        "warning",
+        "conflict",
+        "caution",
+        "alert",
+        "amber"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "colors",
+          "card_rules",
+          "spacing_rules"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "card": "card_rules.variants.semantic — left border + container bg",
+          "icon": "card_rules.iconPlacement.exception — icon above title in vertical layout",
+          "spacing": "spacing_rules.semanticTokens.componentMarginTop.warning_block = 14"
+        }
+      },
+      "rules": {
+        "bg_token": "var(--warning-bg, #FFF8E1)",
+        "border_left_color": "var(--warning, #F59E0B)",
+        "border_left_width": 4,
+        "icon": "⚠",
+        "label_color": "var(--warning, #F59E0B)",
+        "text_color": "var(--dark-sky)",
+        "padding": "12px 16px",
+        "card_radius": "var(--card-radius)",
+        "font_size": 13
+      },
+      "preview_props": {
+        "title": "Ordering Conflict Detected",
+        "items": [
+          "Patient is on a gluten-free diet — tTG IgA sensitivity drops to <30%. Consider HLA-DQ2/DQ8 typing instead.",
+          "Previous tTG IgA result (3 months ago): 142 U/mL. Repeat testing interval may be insufficient for clinical decision-making."
+        ]
+      },
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "c39e3426",
+          "timestamp": "2026-04-03T01:57:28.192742+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "bg_token": "var(--warning-bg, #FFF8E1)",
+            "border_left_color": "var(--warning, #F59E0B)",
+            "border_left_width": 4,
+            "icon": "⚠",
+            "label_color": "var(--warning, #F59E0B)",
+            "text_color": "var(--dark-sky)",
+            "padding": "12px 16px",
+            "card_radius": "var(--card-radius)",
+            "font_size": 13
+          },
+          "preview_props_snapshot": {
+            "title": "Ordering Conflict Detected",
+            "items": [
+              "Patient is on a gluten-free diet — tTG IgA sensitivity drops to <30%. Consider HLA-DQ2/DQ8 typing instead.",
+              "Previous tTG IgA result (3 months ago): 142 U/mL. Repeat testing interval may be insufficient for clinical decision-making."
+            ]
+          }
+        }
+      ]
+    },
+    "info_block": {
+      "id": "info_block",
+      "name": "Info Block",
+      "type": "info_block",
+      "variant": "default",
+      "status": "system",
+      "description": "Blue-accented informational callout for clinical context, methodology notes, and reference data.",
+      "tags": [
+        "info",
+        "context",
+        "note",
+        "methodology",
+        "blue"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "colors",
+          "card_rules",
+          "typography"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "color": "colors.neutral.labBlue for border/icon/label — links only",
+          "card": "card_rules.variants.semantic — 4px left border + info-container bg",
+          "type": "typography.scale.bodySm (14px) for item text"
+        }
+      },
+      "rules": {
+        "bg_token": "var(--info-bg, #EEF4FB)",
+        "border_left_color": "var(--lab-blue)",
+        "border_left_width": 4,
+        "icon": "ℹ",
+        "label_color": "var(--lab-blue)",
+        "text_color": "var(--dark-sky)",
+        "padding": "12px 16px",
+        "card_radius": "var(--card-radius)",
+        "font_size": 13
+      },
+      "preview_props": {
+        "title": "Clinical Context",
+        "items": [
+          "Celiac disease affects approximately 1% of the population; up to 83% may be undiagnosed.",
+          "HLA-DQ2 and HLA-DQ8 haplotypes are present in >99% of celiac patients and are useful for exclusion.",
+          "Gluten challenge (3g/day × 2 weeks) may be required before serological testing in patients on a gluten-free diet."
+        ]
+      },
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "1ab244f0",
+          "timestamp": "2026-04-03T01:57:28.192746+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "bg_token": "var(--info-bg, #EEF4FB)",
+            "border_left_color": "var(--lab-blue)",
+            "border_left_width": 4,
+            "icon": "ℹ",
+            "label_color": "var(--lab-blue)",
+            "text_color": "var(--dark-sky)",
+            "padding": "12px 16px",
+            "card_radius": "var(--card-radius)",
+            "font_size": 13
+          },
+          "preview_props_snapshot": {
+            "title": "Clinical Context",
+            "items": [
+              "Celiac disease affects approximately 1% of the population; up to 83% may be undiagnosed.",
+              "HLA-DQ2 and HLA-DQ8 haplotypes are present in >99% of celiac patients and are useful for exclusion.",
+              "Gluten challenge (3g/day × 2 weeks) may be required before serological testing in patients on a gluten-free diet."
+            ]
+          }
+        }
+      ]
+    },
+    "citation_table": {
+      "id": "citation_table",
+      "name": "Citation Table",
+      "type": "citation_table",
+      "variant": "compact",
+      "status": "system",
+      "description": "Compact source attribution table listing ARUP documents, fact sheets, and consult topics referenced in the response.",
+      "tags": [
+        "citations",
+        "sources",
+        "references",
+        "attribution",
+        "evidence"
+      ],
+      "source_basis": {
+        "based_on": "ARUP Design System v1 · FormattingAgent spec",
+        "design_tokens_used": [
+          "table",
+          "colors",
+          "typography"
+        ],
+        "sample_assets_used": [],
+        "token_refs": {
+          "link": "colors.neutral.labBlue — links only, never decorative",
+          "type": "typography.scale.caption (12px) for citations",
+          "table": "table.stripes applied; table.statusBadges for doc-type chips"
+        }
+      },
+      "rules": {
+        "header_bg": "var(--bg-salt)",
+        "header_color": "var(--accent)",
+        "header_font_size": 11,
+        "cell_font_size": 12,
+        "link_color": "var(--lab-blue)",
+        "border_color": "var(--accent3)",
+        "row_padding": "6px 10px",
+        "show_doc_type_badge": true,
+        "max_rows_before_collapse": 5
+      },
+      "preview_props": {
+        "citations": [
+          {
+            "doc_type": "Fact Sheet",
+            "title": "Celiac Disease Antibody Testing",
+            "source": "ARUP Laboratories",
+            "url": "https://ltd.aruplab.com"
+          },
+          {
+            "doc_type": "Consult Topic",
+            "title": "Celiac Disease Serologic Workup",
+            "source": "ARUP Consult",
+            "url": "https://ltd.aruplab.com"
+          },
+          {
+            "doc_type": "Algorithm",
+            "title": "Celiac Disease Diagnostic Algorithm",
+            "source": "ARUP Algorithms",
+            "url": "https://ltd.aruplab.com"
+          },
+          {
+            "doc_type": "Test Directory",
+            "title": "tTG IgA (TTGA) Test Details",
+            "source": "ARUP Test Dir",
+            "url": "https://ltd.aruplab.com"
+          }
+        ]
+      },
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "a4a56056",
+          "timestamp": "2026-04-03T01:57:28.192750+00:00",
+          "summary": "Initial system component",
+          "rules_snapshot": {
+            "header_bg": "var(--bg-salt)",
+            "header_color": "var(--accent)",
+            "header_font_size": 11,
+            "cell_font_size": 12,
+            "link_color": "var(--lab-blue)",
+            "border_color": "var(--accent3)",
+            "row_padding": "6px 10px",
+            "show_doc_type_badge": true,
+            "max_rows_before_collapse": 5
+          },
+          "preview_props_snapshot": {
+            "citations": [
+              {
+                "doc_type": "Fact Sheet",
+                "title": "Celiac Disease Antibody Testing",
+                "source": "ARUP Laboratories",
+                "url": "https://ltd.aruplab.com"
+              },
+              {
+                "doc_type": "Consult Topic",
+                "title": "Celiac Disease Serologic Workup",
+                "source": "ARUP Consult",
+                "url": "https://ltd.aruplab.com"
+              },
+              {
+                "doc_type": "Algorithm",
+                "title": "Celiac Disease Diagnostic Algorithm",
+                "source": "ARUP Algorithms",
+                "url": "https://ltd.aruplab.com"
+              },
+              {
+                "doc_type": "Test Directory",
+                "title": "tTG IgA (TTGA) Test Details",
+                "source": "ARUP Test Dir",
+                "url": "https://ltd.aruplab.com"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

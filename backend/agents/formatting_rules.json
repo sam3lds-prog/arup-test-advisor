@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "schema": "formatting_rules",
+    "description": "Persistent designer preferences for the ARUP AI Test Advisor FormattingAgent. Edit via the Designer Panel in the UI or directly here.",
+    "last_updated": null,
+    "updated_by": null
+  },
+
+  "composition_order": [
+    "text_block",
+    "algorithm_flow",
+    "recommendation_card",
+    "table",
+    "warning_block",
+    "info_block",
+    "citation_table"
+  ],
+
+  "component_overrides": {
+    "text_block": {
+      "answer_narrative": {
+        "line_height": 1.6,
+        "font_size_class": "text-body",
+        "color_token": "var(--dark-sky)"
+      }
+    },
+    "recommendation_card": {
+      "show_evidence_badges": true,
+      "show_specimen_tat": true,
+      "accent_border_width": 4
+    },
+    "table": {
+      "show_expand_rationale": true,
+      "paginate_at": 8,
+      "zebra_stripe": true,
+      "show_evidence_column": true
+    },
+    "algorithm_flow": {
+      "default_expanded": true,
+      "show_legend": true,
+      "max_height_px": 520,
+      "show_referenced_tests": true
+    },
+    "citation_table": {
+      "default_open": true,
+      "show_excerpt": true,
+      "show_source_role": true
+    },
+    "warning_block": {
+      "icon": "⚠",
+      "bg_color": "#FFF8F0",
+      "border_color": "#F5A623",
+      "text_color": "#8B5E00"
+    },
+    "info_block": {
+      "icon": "ℹ",
+      "bg_token": "var(--bg-salt)",
+      "border_token": "var(--accent3)",
+      "text_token": "var(--accent2)"
+    }
+  },
+
+  "spacing_overrides": {
+    "card_gap": 12,
+    "section_gap": 20,
+    "component_margin_top": {
+      "text_block": 0,
+      "recommendation_card": 12,
+      "table": 20,
+      "algorithm_flow": 16,
+      "badge_group": 8,
+      "warning_block": 14,
+      "info_block": 10,
+      "citation_table": 20
+    }
+  },
+
+  "table_rules": {
+    "min_rows_for_table": 3,
+    "require_specimen_and_tat": false,
+    "populated_threshold_ratio": 0.5
+  },
+
+  "confidence_thresholds": {
+    "high": 70,
+    "moderate": 40
+  },
+
+  "max_components": 6,
+
+  "custom_components": [],
+
+  "designer_notes": ""
+}

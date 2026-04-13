@@ -1,0 +1,196 @@
+{
+  "componentName": "CardRules",
+  "description": "Card layout, alignment, typography, color, and composition rules. Extracted from uploaded card-rules.json and Cards.png design spec.",
+  "sizing": {
+    "minWidth": "240px",
+    "minHeight": "150px",
+    "padding": "24px (sp-6 on all four sides \u2014 this is the default, not 50px)",
+    "paddingHorizontalMax": "48px (sp-12 \u2014 ceiling only, not default; snapped from 50px per spacing audit)",
+    "border": "1px solid var(--accent3)",
+    "borderNote": "Use accent3 (Badlands #DEDFE0) NOT accent (Granite #77787B). Granite is for tables and modal dividers.",
+    "borderRadius": "8px",
+    "gridGap": {
+      "default": "24px (sp-6)",
+      "minimum": "12px (sp-3, snapped from 14px per spacing audit)",
+      "maximum": "32px (sp-8)"
+    }
+  },
+  "layoutRules": {
+    "vertical": {
+      "imageText": [
+        "Image is full-width at card top \u2014 no padding around it (bleeds to card edges)",
+        "All content below image is left-aligned \u2014 center alignment never permitted with image",
+        "Title, body, and buttons stack vertically below image in that order",
+        "Up to two buttons sit inline below the body text"
+      ],
+      "textOnly": [
+        "Default alignment is left",
+        "Center alignment is permitted only when no image is present",
+        "No icon is allowed in vertical layout under any circumstance"
+      ]
+    },
+    "horizontal": {
+      "imageText": [
+        "Image is fixed-width on the left, stretching to full card height (align-self: stretch)",
+        "Content sits to the right of the image, left-aligned, top-aligned"
+      ],
+      "iconText": [
+        "Icon can sit beside the title OR above the title \u2014 both valid in horizontal icon-text only",
+        "Icon beside title: icon and title share the same row, center-aligned vertically",
+        "Icon above title: icon is centered above the title text",
+        "Card content is always middle-aligned vertically in horizontal icon-text cards",
+        "Icon color: dark-sky on white cards, white on filled cards"
+      ]
+    },
+    "filled": {
+      "general": [
+        "Background uses secondary token (Red Rock #6D0020)",
+        "No border \u2014 background defines the container",
+        "All text and icons must be white",
+        "Use outlined button with white border and white label",
+        "Use sparingly \u2014 one filled card per layout section at most"
+      ]
+    }
+  },
+  "typographyRules": {
+    "title": {
+      "token": "h4",
+      "size": "20px",
+      "weight": 600,
+      "lineHeight": "1.30",
+      "color": {
+        "default": "dark-sky (#171717)",
+        "filled": "white (#FFFFFF)"
+      }
+    },
+    "body": {
+      "token": "body-sm",
+      "size": "14px",
+      "weight": 400,
+      "lineHeight": "1.45",
+      "color": {
+        "default": "dark-sky (#171717)",
+        "filled": "white at 82% opacity"
+      }
+    },
+    "fontFamily": "Roboto \u2014 primary typeface, no exceptions",
+    "rules": [
+      "Always use h4 token for card titles \u2014 never raw pixel values",
+      "Always use body-sm token for card body \u2014 never raw pixel values"
+    ]
+  },
+  "colorRules": {
+    "background": {
+      "default": "white (#FFFFFF)",
+      "filled": "secondary / Red Rock (#6D0020)"
+    },
+    "border": {
+      "token": "accent3",
+      "name": "Badlands",
+      "hex": "#DEDFE0",
+      "note": "Use accent3 NOT accent \u2014 Granite is for modal dividers and table borders"
+    },
+    "text": {
+      "default": "dark-sky (#171717)",
+      "filled": "white (#FFFFFF)"
+    },
+    "icon": {
+      "default": "dark-sky (#171717)",
+      "filled": "white (#FFFFFF)"
+    },
+    "rules": [
+      "Never use foundation reds for card borders",
+      "Never use semantic colors as card background or border",
+      "Never use lab-blue for card title or body \u2014 lab-blue is for links only"
+    ]
+  },
+  "contentRules": {
+    "icon": {
+      "placement": "Beside or above the title \u2014 horizontal icon-text ONLY",
+      "required": false,
+      "rules": [
+        "Only valid in horizontal icon-text variant \u2014 NEVER in vertical cards",
+        "Icon beside title: same row, center-aligned",
+        "Icon above title: centered above title \u2014 only in horizontal cards"
+      ]
+    },
+    "title": {
+      "required": true,
+      "rules": [
+        "Short label \u2014 avoid full sentences"
+      ]
+    },
+    "body": {
+      "required": true,
+      "rules": [
+        "Never truncate \u2014 let card grow in height"
+      ]
+    },
+    "buttons": {
+      "required": false,
+      "max": 2,
+      "placement": "Below body text, pinned to card bottom (marginTop: auto)",
+      "rules": [
+        "Buttons always side-by-side on one row \u2014 never stacked or wrapped",
+        "Button row gap: 12px (sp-3)",
+        "On filled cards: outlined variant with white border",
+        "On white cards: solid-primary for first button, outlined for second"
+      ]
+    },
+    "linkCard": {
+      "description": "Card where title and body act as a navigational link. No button.",
+      "colorOverride": {
+        "title": "lab-blue (#306385)",
+        "body": "lab-blue (#306385)",
+        "icon": "lab-blue (#306385)",
+        "note": "Only context where lab-blue is permitted on card title/body \u2014 because the content IS a link"
+      }
+    }
+  },
+  "spacingTokens": {
+    "padding": {
+      "token": "sp-6",
+      "px": "24px"
+    },
+    "paddingMaxH": {
+      "token": "sp-12",
+      "px": "48px"
+    },
+    "gridGapDefault": {
+      "token": "sp-6",
+      "px": "24px"
+    },
+    "gridGapMin": {
+      "token": "sp-3",
+      "px": "12px"
+    },
+    "gridGapMax": {
+      "token": "sp-8",
+      "px": "32px"
+    },
+    "titleToBodyGap": {
+      "token": "sp-2",
+      "px": "8px"
+    },
+    "bodyToButtonGap": {
+      "token": "sp-3",
+      "px": "12px"
+    },
+    "buttonRowGap": {
+      "token": "sp-3",
+      "px": "12px"
+    },
+    "iconTitleGap": {
+      "token": "sp-2",
+      "px": "8px"
+    }
+  },
+  "compositionRules": [
+    "Do not mix more than one filled card in the same row or section",
+    "Do not use icons in vertical cards \u2014 icons are only valid in horizontal cards",
+    "Do not exceed two buttons per card",
+    "Do not allow cards to shrink below 240\u00d7150px",
+    "All cards in the same row must be the same height \u2014 tallest card defines row height",
+    "Buttons inside a card are always side by side \u2014 they never stack or wrap"
+  ]
+}

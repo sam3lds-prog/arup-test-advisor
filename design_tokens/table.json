@@ -1,0 +1,187 @@
+{
+  "componentName": "Table",
+  "description": "Structured data display. Supports selection, actions, pagination, and linked data.",
+  "sizing": {
+    "cellPadding": "8px (sp-2 on all four sides)",
+    "titleBlockToTableGap": "32px (sp-8) \u2014 spec-required gap between title+description and top of table",
+    "columnHeader": {
+      "fontWeight": "bold (700)",
+      "background": "primary-background (White #FFFFFF) \u2014 same as odd rows; header is distinguished by bold weight ONLY, not a different background color",
+      "note": "Do not give the header a different background color \u2014 bold weight is the only visual distinction"
+    },
+    "rowHeight": {
+      "overflow": "Always wrap; never truncate cell content \u2014 row height grows to fit all content"
+    },
+    "zebraStriping": {
+      "pattern": "Alternating row background colors",
+      "oddRows": {
+        "colorToken": "primary-background",
+        "hex": "#FFFFFF",
+        "name": "White"
+      },
+      "evenRows": {
+        "colorToken": "background",
+        "hex": "#F5F5F5",
+        "name": "Salt"
+      },
+      "purpose": "Improves row readability across wide tables"
+    }
+  },
+  "colors": {
+    "headerBackground": "primary-background (White #FFFFFF) \u2014 same as odd rows",
+    "headerText": "dark-sky (#171717)",
+    "cellText": "dark-sky (#171717)",
+    "linkedCellText": "lab-blue (#306385)",
+    "border": "accent (Granite #77787B) \u2014 1px solid",
+    "rules": {
+      "headerBackground": "Header background is WHITE, not a different color. Use bold font-weight to distinguish headers.",
+      "linkColor": "lab-blue for ALL linked values in data cells \u2014 never mix link and non-link text in the same column"
+    }
+  },
+  "columnContentTypes": {
+    "description": "Each column must use one consistent content type across all rows.",
+    "supportedTypes": [
+      "plain text",
+      "linked text",
+      "status badge"
+    ],
+    "statusBadge": {
+      "shape": "pill",
+      "placement": "Rightmost column, always labelled 'Status'",
+      "colorMapping": {
+        "error": {
+          "token": "danger",
+          "container": "danger-container",
+          "note": "Failed, rejected, critical"
+        },
+        "info": {
+          "token": "info",
+          "container": "info-container",
+          "note": "Pending, in-progress"
+        },
+        "positive": {
+          "token": "success",
+          "container": "success-container",
+          "note": "Completed, approved, successful"
+        }
+      },
+      "rules": [
+        "Use colored pill badges in the Status column \u2014 never plain text or generic buttons",
+        "Status badge column must always be the rightmost column",
+        "Never use status badge styling in any column other than Status"
+      ]
+    },
+    "rules": [
+      "Do not mix plain text and linked text within the same column",
+      "Do not use lab-blue for plain text \u2014 only for actual hyperlinks"
+    ]
+  },
+  "variants": [
+    {
+      "name": "selectable",
+      "description": "Checkboxes on the left of each row for multi-row selection. Status/action button on the right.",
+      "rules": {
+        "do": [
+          "Checkbox in column header for select-all",
+          "Checkboxes in leftmost column",
+          "Action/status button in rightmost column"
+        ],
+        "dont": [
+          "Do not place checkboxes anywhere other than leftmost column"
+        ]
+      }
+    },
+    {
+      "name": "default",
+      "description": "Standard table without row selection.",
+      "rules": {
+        "do": [
+          "Column headers must label each column",
+          "Row-level actions in rightmost column",
+          "Always wrap content"
+        ],
+        "dont": [
+          "Do not truncate cell content",
+          "Do not omit column headers"
+        ]
+      }
+    },
+    {
+      "name": "data-table-with-links",
+      "description": "Dense data table with linked cell values using lab-blue token.",
+      "rules": {
+        "do": [
+          "lab-blue for all linked values in data cells",
+          "Consistent column alignment"
+        ],
+        "dont": [
+          "Do not use dark-sky or any other color for links \u2014 must be lab-blue"
+        ]
+      }
+    }
+  ],
+  "tableHeader": {
+    "description": "Title and description block above the table.",
+    "spacing": {
+      "gapBelowHeader": "32px (sp-8) between title+description block and top of table"
+    },
+    "rules": {
+      "do": [
+        "Always include table title and description",
+        "Maintain 32px gap between header block and table"
+      ],
+      "dont": [
+        "Do not render a table without a title and description"
+      ]
+    }
+  },
+  "pagination": {
+    "elements": [
+      "previous arrow",
+      "page numbers",
+      "next arrow",
+      "items-per-page selector"
+    ],
+    "rules": {
+      "do": [
+        "Right-align pagination controls below the table",
+        "Include items-per-page control"
+      ],
+      "dont": [
+        "Do not show pagination when all data fits on one page"
+      ]
+    }
+  },
+  "spacingTokens": {
+    "cellPadding": {
+      "token": "sp-2",
+      "px": "8px"
+    },
+    "titleBlockToTable": {
+      "token": "sp-8",
+      "px": "32px"
+    },
+    "captionMarginTop": {
+      "token": "sp-2",
+      "px": "8px"
+    }
+  },
+  "globalRules": {
+    "do": [
+      "Always include column headers",
+      "Wrap cell content \u2014 row height must expand",
+      "Apply zebra striping (White odd, Salt even)",
+      "Header background = White, distinguished by bold weight only",
+      "Status badges in rightmost Status column using correct system color token",
+      "lab-blue for all linked cell text",
+      "Row-level actions in rightmost column"
+    ],
+    "dont": [
+      "Do not give the header a different background color from odd rows",
+      "Do not truncate cell content",
+      "Do not render all rows the same background \u2014 zebra striping required",
+      "Do not use plain text in place of a status badge in the Status column",
+      "Do not mix linked and plain text in the same column"
+    ]
+  }
+}

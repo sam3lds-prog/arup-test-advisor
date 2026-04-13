@@ -1,0 +1,145 @@
+{
+  "componentName": "Typography",
+  "description": "Design system type rules. All components must reference these type tokens for font family, scale, weight, and line height.",
+  "primaryTypeface": {
+    "family": "Roboto",
+    "usage": "Primary typeface for all UI text, headings, and body copy across digital and printed materials.",
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "variants": ["Light", "Regular", "Medium", "Semibold", "Bold", "Extrabold"],
+    "italics": true,
+    "monoVariant": {
+      "family": "Roboto Mono",
+      "usage": "Code, tokens, and technical values only."
+    }
+  },
+  "systemFonts": {
+    "description": "Fallback typefaces used when Roboto, Garamond, or Avant Garde are unavailable, particularly in email communications.",
+    "fonts": [
+      {
+        "family": "Helvetica",
+        "usage": "System fallback for cross-platform consistency."
+      },
+      {
+        "family": "Arial",
+        "usage": "Universal substitute included as a system font on most operating systems."
+      }
+    ],
+    "rules": {
+      "do": [
+        "Treat system fonts as fallbacks only — never as the primary design typeface"
+      ],
+      "dont": [
+        "Do not use system fonts in designed UI components when Roboto is available",
+        "Do not mix system fonts with Roboto within the same layout"
+      ]
+    }
+  },
+  "typeScale": {
+    "description": "Type scale hierarchy for all UI text. Reference by token name.",
+    "tokens": [
+      {
+        "token": "display",
+        "fontFamily": "Roboto",
+        "fontSize": "48px",
+        "rem": "3rem",
+        "fontWeight": 700,
+        "usage": "Hero and display-level headings. Use sparingly for top-level page statements."
+      },
+      {
+        "token": "h1",
+        "fontFamily": "Roboto",
+        "fontSize": "36px",
+        "rem": "2.25rem",
+        "fontWeight": 700,
+        "usage": "Page-level headings."
+      },
+      {
+        "token": "h2",
+        "fontFamily": "Roboto",
+        "fontSize": "28px",
+        "rem": "1.75rem",
+        "fontWeight": 700,
+        "usage": "Section headings."
+      },
+      {
+        "token": "h3",
+        "fontFamily": "Roboto",
+        "fontSize": "24px",
+        "rem": "1.5rem",
+        "fontWeight": 600,
+        "usage": "Sub-section headings."
+      },
+      {
+        "token": "h4",
+        "fontFamily": "Roboto",
+        "fontSize": "20px",
+        "rem": "1.25rem",
+        "fontWeight": 600,
+        "usage": "Component-level headings and card titles."
+      },
+      {
+        "token": "body-lg",
+        "fontFamily": "Roboto",
+        "fontSize": "18px",
+        "rem": "1.125rem",
+        "fontWeight": 400,
+        "usage": "Large body text. Use for lead paragraphs or prominent supporting text."
+      },
+      {
+        "token": "body-default",
+        "fontFamily": "Roboto",
+        "fontSize": "16px",
+        "rem": "1rem",
+        "fontWeight": 400,
+        "usage": "Default body text for all standard content."
+      },
+      {
+        "token": "body-sm",
+        "fontFamily": "Roboto",
+        "fontSize": "14px",
+        "rem": "0.875rem",
+        "fontWeight": 400,
+        "usage": "Small body text for secondary or supporting content."
+      },
+      {
+        "token": "caption",
+        "fontFamily": "Roboto",
+        "fontSize": "12px",
+        "rem": "0.75rem",
+        "fontWeight": 300,
+        "usage": "Captions, labels, and fine print. Use sparingly at smallest size."
+      }
+    ]
+  },
+  "lineHeight": {
+    "headings": {
+      "range": "120%–130%",
+      "applies": ["display", "h1", "h2", "h3", "h4"]
+    },
+    "body": {
+      "range": "140%–150%",
+      "applies": ["body-lg", "body-default", "body-sm", "caption"]
+    }
+  },
+  "globalRules": {
+    "do": [
+      "Use Roboto as the primary typeface for all UI components",
+      "Reference type tokens by name (e.g. body-default, h2) rather than raw pixel values",
+      "Apply heading line height (120%–130%) to all heading tokens",
+      "Apply body line height (140%–150%) to all body and caption tokens",
+      "Use Roboto Mono exclusively for code, tokens, and technical values"
+    ],
+    "dont": [
+      "Do not use system fonts (Helvetica, Arial) in UI components — reserve them for email fallback only",
+      "Do not apply heading weights to body text or vice versa",
+      "Do not use caption (12px) as standard body text — it is for supplementary content only",
+      "Do not invent type sizes outside of the defined scale"
+    ]
+  }
+}

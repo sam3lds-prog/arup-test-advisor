@@ -1,0 +1,215 @@
+{
+  "componentName": "Button",
+  "description": "Interactive trigger elements. Emphasis level determines variant selection.",
+  "typography": {
+    "fontFamily": "Roboto Bold",
+    "borderRadius": "50vh"
+  },
+  "sizing": {
+    "paddingHorizontal": "25px (btn-px \u2014 spec exception, not on the 4px spacing scale)",
+    "paddingVertical": "7px  (btn-py \u2014 spec exception, not on the 4px spacing scale)",
+    "borderRadius": "50vh (pill shape \u2014 use 50vh not a fixed px value to prevent distortion on word wraps)",
+    "mobile": {
+      "width": "80%",
+      "note": "Buttons expand to fill 80% of screen width on mobile"
+    }
+  },
+  "variants": [
+    {
+      "name": "solid-primary",
+      "emphasis": "high",
+      "description": "Primary action button. Use for the single most important action per view.",
+      "states": [
+        "default",
+        "hover",
+        "focused",
+        "disabled"
+      ],
+      "subVariants": [
+        "text-only",
+        "icon-text"
+      ],
+      "colors": {
+        "background": "primary",
+        "label": "white",
+        "icon": "white",
+        "focusRing": "primary"
+      },
+      "rules": {
+        "do": [
+          "One primary button per section max",
+          "Ensure high contrast against background"
+        ],
+        "dont": [
+          "Do not use more than one primary button per section",
+          "Do not place on similarly colored backgrounds"
+        ]
+      }
+    },
+    {
+      "name": "solid-secondary",
+      "emphasis": "high",
+      "description": "Secondary solid button. Supports primary actions with slightly lower hierarchy.",
+      "states": [
+        "default",
+        "hover",
+        "focused",
+        "disabled"
+      ],
+      "subVariants": [
+        "text-only",
+        "icon-text"
+      ],
+      "colors": {
+        "background": "secondary",
+        "label": "white",
+        "icon": "white",
+        "focusRing": "secondary"
+      },
+      "rules": {
+        "do": [
+          "Pair with primary button for an alternative action"
+        ],
+        "dont": [
+          "Do not use in isolation as the only CTA"
+        ]
+      }
+    },
+    {
+      "name": "solid-tertiary",
+      "emphasis": "high",
+      "description": "Tertiary solid button using black fill. Third-level solid action.",
+      "states": [
+        "default",
+        "hover",
+        "focused",
+        "disabled"
+      ],
+      "subVariants": [
+        "text-only",
+        "icon-text"
+      ],
+      "colors": {
+        "background": "black",
+        "label": "white",
+        "icon": "white",
+        "focusRing": "black"
+      },
+      "rules": {
+        "do": [
+          "Use to create hierarchy when primary and secondary are already present"
+        ],
+        "dont": [
+          "Do not use as primary CTA",
+          "Do not mix with transparent buttons in same action group"
+        ]
+      }
+    },
+    {
+      "name": "outlined",
+      "emphasis": "medium",
+      "description": "Stroke-only button for medium emphasis. Secondary user actions.",
+      "states": [
+        "default",
+        "hover",
+        "focused",
+        "disabled"
+      ],
+      "subVariants": [
+        "text-only",
+        "icon-text"
+      ],
+      "colors": {
+        "background": "transparent",
+        "border": "primary",
+        "label": "primary",
+        "icon": "primary",
+        "focusRing": "primary"
+      },
+      "rules": {
+        "do": [
+          "Pair with solid button as secondary action",
+          "Use on light backgrounds"
+        ],
+        "dont": [
+          "Do not use as primary CTA",
+          "Do not use on backgrounds that obscure the border"
+        ]
+      }
+    },
+    {
+      "name": "transparent",
+      "emphasis": "low",
+      "description": "No fill, no border. Lowest emphasis. ONLY valid on dark backgrounds.",
+      "states": [
+        "default",
+        "hover",
+        "focused",
+        "disabled"
+      ],
+      "subVariants": [
+        "text-only"
+      ],
+      "colors": {
+        "background": "transparent",
+        "border": "none",
+        "label": "white",
+        "focusRing": "white"
+      },
+      "rules": {
+        "do": [
+          "Use only on dark backgrounds",
+          "Pair as supplemental action alongside high/medium emphasis buttons"
+        ],
+        "dont": [
+          "Do not use on light or white backgrounds",
+          "Do not use as sole action \u2014 always accompany with a higher emphasis button"
+        ]
+      }
+    }
+  ],
+  "states": {
+    "default": "Base resting state",
+    "hover": "Visual feedback when cursor is over the button",
+    "focused": "Keyboard focus \u2014 outline ring offset in variant primary color (white for transparent)",
+    "disabled": "Inactive \u2014 reduced opacity globally, non-interactive"
+  },
+  "spacingTokens": {
+    "paddingV": {
+      "value": "7px",
+      "token": "btn-py",
+      "status": "exception"
+    },
+    "paddingH": {
+      "value": "25px",
+      "token": "btn-px",
+      "status": "exception"
+    },
+    "iconGap": {
+      "token": "sp-1",
+      "px": "4px",
+      "note": "Gap between icon and label \u2014 snapped from 6px per spacing audit"
+    },
+    "groupGap": {
+      "token": "sp-3",
+      "px": "12px",
+      "note": "Gap between two buttons in an action group"
+    }
+  },
+  "globalRules": {
+    "do": [
+      "Match button emphasis to action importance",
+      "Maintain 25px/7px padding on all variants",
+      "Use Roboto Bold for all button labels",
+      "Use 50vh border-radius to preserve pill shape",
+      "Use variant primary color token for focus ring",
+      "Use white focus ring on transparent buttons only"
+    ],
+    "dont": [
+      "Do not mix more than two button variants in a single action group",
+      "Do not use transparent buttons on light backgrounds \u2014 dark backgrounds only",
+      "Do not override border-radius with a fixed pixel value \u2014 use 50vh",
+      "Do not use 6px icon gap \u2014 snap to 4px (sp-1) per spacing audit"
+    ]
+  }
+}

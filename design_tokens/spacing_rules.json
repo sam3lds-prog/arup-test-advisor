@@ -1,0 +1,229 @@
+{
+  "componentName": "SpacingSystem",
+  "description": "Spacing token definitions, irregularity audit across all components, and resolved application rules. All components must reference token names — never raw pixel values.",
+
+  "baseline": {
+    "description": "The 4px-base scale. All spacing in the system must use one of these tokens.",
+    "tokens": [
+      { "token": "sp-1",  "px": "4px",  "rem": "0.25rem", "usage": "Micro spacing — icon gaps, dot separators, tight inline elements" },
+      { "token": "sp-2",  "px": "8px",  "rem": "0.5rem",  "usage": "Small spacing — internal component gaps, label margins, table cell padding" },
+      { "token": "sp-3",  "px": "12px", "rem": "0.75rem", "usage": "Close spacing — between tightly related elements, badge padding, chip gaps" },
+      { "token": "sp-4",  "px": "16px", "rem": "1rem",    "usage": "Default inline spacing — icon-text gap in horizontal cards, form row gaps" },
+      { "token": "sp-6",  "px": "24px", "rem": "1.5rem",  "usage": "Component padding — card padding all sides, card grid gap default, hero meta gap" },
+      { "token": "sp-8",  "px": "32px", "rem": "2rem",    "usage": "Generous spacing — modal padding, page horizontal padding, section dividers" },
+      { "token": "sp-12", "px": "48px", "rem": "3rem",    "usage": "Section spacing — padding-top between page sections, hero vertical padding" },
+      { "token": "sp-16", "px": "64px", "rem": "4rem",    "usage": "Page-level spacing — page bottom padding, large layout gaps" }
+    ],
+    "note": "sp-5 (20px), sp-7 (28px), sp-10 (40px), sp-14 (56px) do not exist in the scale. Values in those ranges must be snapped to the nearest defined token."
+  },
+
+  "irregularitiesAudit": {
+    "description": "All off-scale values found across buttons, cards, modals, tables, and the article layout. Each entry documents where the value was found, why it is irregular, and the resolution.",
+    "items": [
+      {
+        "value": "7px",
+        "foundIn": "Button — vertical padding (btnPy)",
+        "issue": "Between sp-1 (4px) and sp-2 (8px). Not on scale.",
+        "resolution": "Spec-defined exception. Button vertical padding is a fixed spec value from buttons.json and must not be changed to maintain the prescribed pill shape. Document as a component exception — not a spacing token.",
+        "action": "exception",
+        "exceptionToken": "btn-py",
+        "exceptionValue": "7px"
+      },
+      {
+        "value": "25px",
+        "foundIn": "Button — horizontal padding (btnPx)",
+        "issue": "Between sp-6 (24px) and sp-8 (32px). Not on scale.",
+        "resolution": "Spec-defined exception. Button horizontal padding is a fixed spec value from buttons.json. Document as a component exception.",
+        "action": "exception",
+        "exceptionToken": "btn-px",
+        "exceptionValue": "25px"
+      },
+      {
+        "value": "5px",
+        "foundIn": "Metric delta — inline gap between arrow and text",
+        "issue": "Between sp-1 (4px) and sp-2 (8px). Not on scale.",
+        "resolution": "Snap to sp-1 (4px). The difference is imperceptible and alignment improves with a token value.",
+        "action": "snap",
+        "snapTo": "sp-1",
+        "snapValue": "4px"
+      },
+      {
+        "value": "6px",
+        "foundIn": "Hero meta — gap between meta items; Section label — margin-bottom",
+        "issue": "Between sp-1 (4px) and sp-2 (8px). Used inconsistently — sometimes 6px, sometimes 8px for visually equivalent contexts.",
+        "resolution": "Snap to sp-1 (4px) for decorative micro-gaps (dot separators). Snap to sp-2 (8px) for text-adjacent label margins. Eliminate 6px entirely.",
+        "action": "snap",
+        "snapTo": "sp-1 or sp-2 depending on context",
+        "rule": "Use sp-1 (4px) for decorative gaps and dot separators. Use sp-2 (8px) for label-to-content margins."
+      },
+      {
+        "value": "10px",
+        "foundIn": "Card title — margin-bottom before body text; Button row — gap between buttons inside a card",
+        "issue": "Between sp-2 (8px) and sp-3 (12px). Used in multiple components inconsistently.",
+        "resolution": "Snap to sp-2 (8px) for tight internal component spacing. Snap to sp-3 (12px) where slightly more breathing room is needed between distinct content elements.",
+        "action": "snap",
+        "rule": "Use sp-2 (8px) for intra-element gaps (title to body). Use sp-3 (12px) for between-element gaps (body to buttons)."
+      },
+      {
+        "value": "11px",
+        "foundIn": "Section labels, legend items, chart tick labels — used widely as a 'small label' size",
+        "issue": "Not on the type scale. Caption token is 12px / weight 300. Using 11px creates an undocumented sub-caption tier.",
+        "resolution": "All instances of 11px font-size must use the caption token (12px / weight 300) instead. Eliminates the undocumented size.",
+        "action": "snap",
+        "snapTo": "caption token",
+        "snapValue": "12px / weight 300"
+      },
+      {
+        "value": "13px",
+        "foundIn": "Metric delta text — font-size between caption (12px) and body-sm (14px)",
+        "issue": "Not on the type scale. Creates an undocumented intermediate size.",
+        "resolution": "Snap to caption token (12px) for supplementary metric annotations, or body-sm (14px) if it needs to read as data. Eliminate 13px entirely.",
+        "action": "snap",
+        "rule": "Use caption (12px) for metric annotations and supporting labels. Use body-sm (14px) for metric values that are data-adjacent."
+      },
+      {
+        "value": "14px",
+        "foundIn": "Card grid gap — defined minimum (min 14px, max 32px)",
+        "issue": "Between sp-3 (12px) and sp-4 (16px). The defined minimum is off-scale.",
+        "resolution": "Snap minimum card gap to sp-3 (12px). Maximum remains sp-8 (32px). Default stays sp-6 (24px).",
+        "action": "snap",
+        "snapTo": "sp-3",
+        "snapValue": "12px"
+      },
+      {
+        "value": "20px",
+        "foundIn": "Hero title — margin-bottom; Section title — margin-bottom before content",
+        "issue": "Between sp-4 (16px) and sp-6 (24px). Not on scale. Used as a mid-point that doesn't exist in the token system.",
+        "resolution": "Snap to sp-4 (16px) for title-to-body margins within a section header block. Use sp-6 (24px) when more separation is needed between the header block and the first content element.",
+        "action": "snap",
+        "rule": "Use sp-4 (16px) for heading-to-body margins. Use sp-6 (24px) for heading-block-to-content separation."
+      },
+      {
+        "value": "50px",
+        "foundIn": "Card — horizontal padding maximum (paddingHorizontalMax)",
+        "issue": "Between sp-12 (48px) and sp-16 (64px). Not on scale.",
+        "resolution": "Snap to sp-12 (48px). The 2px difference is imperceptible and alignment with the token scale improves predictability.",
+        "action": "snap",
+        "snapTo": "sp-12",
+        "snapValue": "48px"
+      },
+      {
+        "value": "56px",
+        "foundIn": "Hero — padding-top",
+        "issue": "Between sp-12 (48px) and sp-16 (64px). Not on scale.",
+        "resolution": "Snap to sp-12 (48px) for hero vertical padding. Use sp-16 (64px) only for the largest layout containers where maximum visual separation is needed.",
+        "action": "snap",
+        "snapTo": "sp-12",
+        "snapValue": "48px"
+      }
+    ]
+  },
+
+  "resolvedApplicationRules": {
+    "description": "Token-to-context mapping for every spacing use case across the design system. All values resolved to scale.",
+
+    "buttons": {
+      "paddingVertical":   { "value": "7px",  "status": "exception", "token": "btn-py", "note": "Spec-defined. Do not override with a scale token." },
+      "paddingHorizontal": { "value": "25px", "status": "exception", "token": "btn-px", "note": "Spec-defined. Do not override with a scale token." },
+      "iconGap":           { "token": "sp-1", "px": "4px",  "note": "Gap between icon and label text inside a button" },
+      "groupGap":          { "token": "sp-3", "px": "12px", "note": "Gap between two buttons in an action group" }
+    },
+
+    "cards": {
+      "padding":            { "token": "sp-6",  "px": "24px", "note": "All four sides — default and only applied value" },
+      "paddingHorizontalMax":{ "token": "sp-12", "px": "48px", "note": "Maximum horizontal padding ceiling — snapped from 50px" },
+      "gridGapDefault":     { "token": "sp-6",  "px": "24px", "note": "Default gap between cards in a row and on wrap" },
+      "gridGapMin":         { "token": "sp-3",  "px": "12px", "note": "Minimum card gap — snapped from 14px" },
+      "gridGapMax":         { "token": "sp-8",  "px": "32px", "note": "Maximum card gap" },
+      "titleToBodyGap":     { "token": "sp-2",  "px": "8px",  "note": "Margin between card title and body text" },
+      "bodyToButtonGap":    { "token": "sp-3",  "px": "12px", "note": "Margin between body text and button row (via marginTop:auto + paddingTop)" },
+      "buttonRowGap":       { "token": "sp-3",  "px": "12px", "note": "Gap between two buttons in a card — snapped from 10px" },
+      "iconTitleGap":       { "token": "sp-2",  "px": "8px",  "note": "Gap between icon and title in horizontal icon-text card" }
+    },
+
+    "modals": {
+      "padding":     { "token": "sp-8",  "px": "32px", "note": "Padding on all sides inside the modal container" },
+      "headerToBody":{ "token": "sp-6",  "px": "24px", "note": "Space from divider to body content top" },
+      "bodyToFooter":{ "token": "sp-6",  "px": "24px", "note": "Space from body content bottom to footer button row" },
+      "buttonGap":   { "token": "sp-3",  "px": "12px", "note": "Gap between Cancel and action button in modal footer" }
+    },
+
+    "table": {
+      "cellPadding":        { "token": "sp-2",  "px": "8px",  "note": "All four sides of every table cell" },
+      "titleBlockToTable":  { "token": "sp-8",  "px": "32px", "note": "Gap between the title+description block and the top of the table — spec-defined" },
+      "captionMarginTop":   { "token": "sp-2",  "px": "8px",  "note": "Margin between table bottom and caption/footnote text" }
+    },
+
+    "layout": {
+      "pageHorizontalPad":  { "token": "sp-8",  "px": "32px", "note": "Left/right page padding" },
+      "pageBottomPad":      { "token": "sp-16", "px": "64px", "note": "Page bottom padding" },
+      "sectionPaddingTop":  { "token": "sp-12", "px": "48px", "note": "Padding above each page section — snapped from 48px (was correct)" },
+      "heroPaddingTop":     { "token": "sp-12", "px": "48px", "note": "Hero block top padding — snapped from 56px" },
+      "heroPaddingBottom":  { "token": "sp-12", "px": "48px", "note": "Hero block bottom padding" }
+    },
+
+    "typography": {
+      "eyebrowToTitle":     { "token": "sp-4",  "px": "16px", "note": "Margin between eyebrow label and page title" },
+      "titleToSubtitle":    { "token": "sp-4",  "px": "16px", "note": "Margin between title and subtitle or lead paragraph — snapped from 20px" },
+      "subtitleToMeta":     { "token": "sp-8",  "px": "32px", "note": "Margin between subtitle and meta row" },
+      "sectionLabelMargin": { "token": "sp-2",  "px": "8px",  "note": "Margin below section eyebrow label — snapped from 6px" },
+      "sectionTitleMargin": { "token": "sp-4",  "px": "16px", "note": "Margin below section title before first content — snapped from 20px" },
+      "paragraphGap":       { "token": "sp-4",  "px": "16px", "note": "Gap between body copy paragraphs" },
+      "metaItemGap":        { "token": "sp-6",  "px": "24px", "note": "Gap between meta row items (date, author, period)" },
+      "metaDotGap":         { "token": "sp-1",  "px": "4px",  "note": "Gap between dot separator and adjacent meta text — snapped from 6px" }
+    },
+
+    "charts": {
+      "chartPanelPadding":  { "token": "sp-6",  "px": "24px", "note": "Internal padding of the chart container card" },
+      "headerToLegend":     { "token": "sp-4",  "px": "16px", "note": "Gap between chart title block and legend row" },
+      "legendToCanvas":     { "token": "sp-3",  "px": "12px", "note": "Gap between legend row and chart canvas" },
+      "legendItemGap":      { "token": "sp-3",  "px": "12px", "note": "Gap between individual legend items" },
+      "legendSwatchGap":    { "token": "sp-1",  "px": "4px",  "note": "Gap between legend swatch and label text — snapped from 5-6px" },
+      "metricCardPadding":  { "token": "sp-4",  "px": "16px", "note": "Internal padding of metric summary cards above charts" },
+      "metricCardGap":      { "token": "sp-4",  "px": "16px", "note": "Gap between metric cards in a row" },
+      "metricLabelGap":     { "token": "sp-2",  "px": "8px",  "note": "Margin between metric label and metric value" }
+    }
+  },
+
+  "fontSizeAudit": {
+    "description": "Font sizes found outside the type scale. All must be replaced with the nearest type scale token.",
+    "items": [
+      {
+        "value": "11px",
+        "foundIn": "Section labels, legend items, chart tick labels",
+        "issue": "Not on type scale — sits below caption (12px)",
+        "resolution": "Use caption token (12px / Roboto 300). Imperceptible visual difference; brings all labels on scale.",
+        "snapTo": "caption"
+      },
+      {
+        "value": "13px",
+        "foundIn": "Metric delta text, some annotation labels",
+        "issue": "Not on type scale — between caption (12px) and body-sm (14px)",
+        "resolution": "Use caption (12px) for purely supplementary annotations. Use body-sm (14px) if the value is data-facing and needs to read clearly.",
+        "snapTo": "caption or body-sm depending on context"
+      }
+    ]
+  },
+
+  "globalRules": {
+    "do": [
+      "Always reference a spacing token — never raw pixel values in component styles",
+      "Use sp-1 (4px) for micro-gaps: icon-text inline gaps, dot separators, badge internal padding",
+      "Use sp-2 (8px) for intra-component spacing: title-to-body, label margins, table cell padding",
+      "Use sp-3 (12px) for close but distinct elements: button group gaps, card body-to-button gap",
+      "Use sp-4 (16px) for default inline layout gaps: icon-to-content in horizontal cards, heading-to-body",
+      "Use sp-6 (24px) for component padding: card padding, card grid gap, chart panel padding",
+      "Use sp-8 (32px) for generous separation: modal padding, page horizontal padding, table header gap",
+      "Use sp-12 (48px) for section-level spacing: section padding-top, hero vertical padding",
+      "Use sp-16 (64px) for page-level spacing: page bottom padding, maximum layout gaps",
+      "Treat button padding (7px vertical, 25px horizontal) as spec-defined component exceptions — never replace with scale tokens"
+    ],
+    "dont": [
+      "Do not use 5px, 6px, 7px (except button exception), 10px, 11px, 13px, 14px, 20px, 25px (except button exception), 50px, or 56px as spacing values",
+      "Do not introduce new spacing values outside the 8-token scale",
+      "Do not use 11px or 13px as font sizes — use caption (12px) or body-sm (14px) from the type scale",
+      "Do not use sp-12 (48px) where sp-8 (32px) is sufficient — prefer the smaller token unless visual separation genuinely requires more",
+      "Do not apply sp-16 (64px) inside components — it is a page-level token only"
+    ]
+  }
+}

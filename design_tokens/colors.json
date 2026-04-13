@@ -1,0 +1,60 @@
+{
+  "componentName": "ColorPalette",
+  "description": "Design system color tokens. All components must reference these token names rather than raw hex values.",
+  "foundation": {
+    "primary":   { "token": "primary",   "name": "ARUP Red",    "hex": "#AE132A", "cssVar": "var(--primary)",   "usage": "Primary brand color. Primary buttons, key highlights, algorithm start-node borders." },
+    "secondary": { "token": "secondary", "name": "Red Rock",    "hex": "#6D0020", "cssVar": "var(--secondary)", "usage": "Secondary brand. Secondary buttons, filled card backgrounds, algorithm start-node fill, Zone C accent." },
+    "tertiary":  { "token": "tertiary",  "name": "Figwort",     "hex": "#DA1A32", "cssVar": "var(--tertiary)",  "usage": "Tertiary brand. Supporting red variation." },
+    "accent":    { "token": "accent",    "name": "Granite",     "hex": "#77787B", "cssVar": "var(--accent)",    "usage": "TABLE borders, modal dividers, standard UI separators. NOT for card borders — use accent3/Badlands." },
+    "accent2":   { "token": "accent2",   "name": "Coal",        "hex": "#414042", "cssVar": "var(--accent2)",   "usage": "High-contrast UI elements, tertiary buttons, secondary/caption text." },
+    "accent3":   { "token": "accent3",   "name": "Badlands",    "hex": "#DEDFE0", "cssVar": "var(--accent3)",   "usage": "CARD borders, chart grid lines, low-emphasis outlines. NOT for table borders — use accent/Granite." },
+    "accent4":   { "token": "accent4",   "name": "Aspen",       "hex": "#C6B1A1", "cssVar": "var(--accent4)",   "usage": "Warm neutral. Algorithm Zone A accent. Supporting data-viz tone." },
+    "accent5":   { "token": "accent5",   "name": "Hoodoo",      "hex": "#D37E57", "cssVar": "var(--accent5)",   "usage": "Terracotta orange. Algorithm Zone B accent. Supporting visual accents." },
+    "accent6":   { "token": "accent6",   "name": "Light Aspen", "hex": "#F9F7F6", "cssVar": "var(--accent6)",   "usage": "Lightest warm neutral. Secondary surface, footnote blocks, input backgrounds." },
+    "white":     { "token": "white",     "name": "White",       "hex": "#FFFFFF", "cssVar": "var(--white)",     "usage": "Card and page backgrounds, button labels on solid variants." },
+    "black":     { "token": "black",     "name": "Black",       "hex": "#000000", "cssVar": "var(--black)",     "usage": "Tertiary solid button fill only." }
+  },
+  "typography": {
+    "textColor": { "token": "dark-sky", "name": "Dark Sky", "hex": "#171717", "cssVar": "var(--dark-sky)", "usage": "ALL standard body text, headings, UI labels. The only permitted body text colour." },
+    "linkColor":  { "token": "lab-blue", "name": "Lab Blue", "hex": "#306385", "cssVar": "var(--lab-blue)", "usage": "Hyperlinks and linked table cell values ONLY. Never for non-link body text." },
+    "rules": {
+      "do":   ["Use dark-sky for all body and UI text", "Use lab-blue exclusively for hyperlinks and linked table cell values"],
+      "dont": ["Do not use lab-blue for non-link text", "Do not use foundation reds for body text"]
+    }
+  },
+  "background": {
+    "primaryBackground":   { "token": "primary-background",   "name": "White",       "hex": "#FFFFFF", "cssVar": "var(--bg-primary)",          "usage": "Default card/page background. Table odd rows." },
+    "background":          { "token": "background",           "name": "Salt",        "hex": "#F5F5F5", "cssVar": "var(--bg-salt)",             "usage": "Page background, table even rows, panel fills." },
+    "tertiaryBackground":  { "token": "tertiary-background",  "name": "Badlands",    "hex": "#DEDFE0", "cssVar": "var(--bg-tertiary)",         "usage": "Tertiary surface. Chip backgrounds, subtle differentiation." },
+    "secondaryBackground": { "token": "secondary-background", "name": "Light Aspen", "hex": "#F9F7F6", "cssVar": "var(--secondary-background)","usage": "Warm off-white. Input backgrounds, footnote blocks, secondary card surfaces." }
+  },
+  "semantic": {
+    "note": "Reserved for status communication only. Never use for decoration or data visualisation.",
+    "danger":  { "token": "danger",  "name": "Danger/Error", "hex": "#EF3E24", "container": "#FDDBD6", "cssVar": "var(--danger)",  "containerCssVar": "var(--danger-container)",  "usage": "Error states, destructive actions, conflict alerts." },
+    "info":    { "token": "info",    "name": "Glass",        "hex": "#83A8C5", "container": "#E3EEF5", "cssVar": "var(--info)",    "containerCssVar": "var(--info-container)",    "usage": "Informational states, neutral alerts, info status badges." },
+    "warning": { "token": "warning", "name": "Warning",      "hex": "#F5C460", "container": "#FEF3D4", "cssVar": "var(--warning)", "containerCssVar": "var(--warning-container)", "usage": "Caution states, warning alerts, warning status badges." },
+    "success": { "token": "success", "name": "Success",      "hex": "#127341", "container": "#C8E6D4", "cssVar": "var(--positive)","containerCssVar": "var(--positive-container)","usage": "Success, confirmed, approved states. Reflex test badges." },
+    "rules": {
+      "do":   ["Pair every semantic color with its container token for badge/panel backgrounds", "Use semantic tokens exclusively for status communication"],
+      "dont": ["Do not use semantic colors for chart data", "Do not use danger token in place of primary red for brand elements"]
+    }
+  },
+  "border": {
+    "cards":  { "token": "accent3", "name": "Badlands", "hex": "#DEDFE0", "usage": "ALL card borders — 1px solid. NOT Granite." },
+    "tables": { "token": "accent",  "name": "Granite",  "hex": "#77787B", "usage": "Table cell borders, modal dividers, standard UI separators." },
+    "rules": {
+      "do":   ["Use accent3 (Badlands) for card borders", "Use accent (Granite) for table and modal borders"],
+      "dont": ["Do not mix Badlands and Granite borders on the same component", "Do not use Granite for card borders — it is too dark"]
+    }
+  },
+  "algorithmZoneColors": {
+    "note": "Zone accent colors for grouped_branch_layout algorithms. Applied to zone header left-border accents.",
+    "zoneA": { "token": "accent4",  "name": "Aspen",    "hex": "#C6B1A1", "usage": "Zone A — Differentiated cancers (monitoring pathway)" },
+    "zoneB": { "token": "accent5",  "name": "Hoodoo",   "hex": "#D37E57", "usage": "Zone B — Aggressive cancers (poor prognosis)" },
+    "zoneC": { "token": "secondary","name": "Red Rock",  "hex": "#6D0020", "usage": "Zone C — Sequential diagnostic chain (e.g. MTC)" }
+  },
+  "globalRules": {
+    "do":   ["Always reference token names, never raw hex values", "accent3 (Badlands) for card borders", "accent (Granite) for table/modal borders", "dark-sky for body text", "lab-blue for links only", "semantic tokens for status only"],
+    "dont": ["Do not use semantic colors for charts", "Do not use lab-blue outside hyperlink contexts", "Do not swap Badlands and Granite border tokens"]
+  }
+}
