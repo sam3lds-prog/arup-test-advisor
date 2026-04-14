@@ -1,3 +1,44 @@
+"""
+processor.py
+────────────────────────────────────────────────────────────────────────────
+Document Processor — Ingestion & Chunking Pipeline
+
+Converts raw ARUP Laboratories files (JSON, PDF, CSV) into text chunks
+suitable for storage in the VectorStore (ChromaDB). Each chunk carries
+structured metadata so the RetrievalAgent and EvidencePackager can filter
+and group results by source type.
+
+Source-type detection (multi-signal, priority ordered):
+  1. JSON `entity_type` field          — authoritative when present
+  2. `json_index` prefix               — e.g. "algorithm_*", "fact_sheet_*"
+  3. Parent folder name                — e.g. algorithms/, fact_sheets/
+  4. Filename keywords                 — e.g. "algorithm", "factsheet"
+  5. JSON structural key scoring       — fallback heuristic
+
+Supported source types:
+  Algorithm      — diagnostic decision-tree documents (nodes + edges JSON or PDF)
+  Fact Sheet     — lab test interpretation and caveat documents
+  Consult Topic  — clinical guidance and disease-specific test rationale
+  Test Directory — order codes, specimen requirements, turnaround times
+  General        — unclassified or mixed content
+
+Supported file formats:
+  .json  — ARUP structured exports (algorithms, fact sheets, consult topics,
+            test directory entries)
+  .pdf   — algorithm PDFs and other clinical reference PDFs
+  .csv   — test directory exports
+
+Key outputs per chunk:
+  text         : plain-text content for embedding
+  source_type  : classified document category
+  filename     : original file name
+  chunk_index  : position within the document
+  test_id      : stable numeric/string test identifier (Test Directory only)
+  test_name    : human-readable test name
+  source_url   : originating ARUP URL (when available)
+  chunk_type   : "algorithm_graph" for graph payload chunks (AlgorithmRenderer)
+"""
+
 import io
 import os
 import re

@@ -464,8 +464,13 @@ function ClinicalNodeCard({ node }) {
     )
   }
 
-  /* ── outcomeNode — neutral card with eyebrow label ── */
+  /* ── outcomeNode — neutral card with context-aware eyebrow label ── */
   if (v === 'outcomeNode') {
+    const sub = node.outcome_subtype || 'general'
+    const eyebrow = sub === 'refer' ? 'Outcome — Refer'
+      : sub === 'monitor' ? 'Outcome — Monitor'
+      : 'Outcome'
+    const isRefer = sub === 'refer'
     return (
       <div style={{
         background: CL.nodeNeutral, border: `1.5px solid ${CL.badlands}`,
@@ -475,10 +480,10 @@ function ClinicalNodeCard({ node }) {
           fontSize: 9, fontWeight: 700, color: CL.graniteM,
           textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4,
         }}>
-          Outcome — Refer
+          {eyebrow}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 500, color: CL.labBlue, lineHeight: 1.4 }}>
-          {node.label} ↗
+        <div style={{ fontSize: 12, fontWeight: 500, color: isRefer ? CL.labBlue : CL.darkSky, lineHeight: 1.4 }}>
+          {node.label}{isRefer && ' ↗'}
         </div>
         {node.description && (
           <div style={{ fontSize: 10.5, fontStyle: 'italic', color: CL.graniteM, marginTop: 4, lineHeight: 1.35 }}>

@@ -63,6 +63,11 @@ _RESULT_PILL_PATTERNS = {"elevated","confirmed","positive","negative","indetermi
 _CRITICAL_PATTERNS    = {"germline","genetic testing","ret ","brca","urgent","biopsy",
                          "surgical","malignant","critical","life-threatening"}
 
+_OUTCOME_REFER_KWS    = {"refer","consult","specialist","endocrinol","oncolog",
+                         "surgeon","patholog","geneticist","second opinion"}
+_OUTCOME_MONITOR_KWS  = {"monitor","follow","surveillance","recheck","repeat",
+                         "interval","periodic","observe","watch","reassess"}
+
 # Zone accent palette (from thyroid cancer UX layout spec)
 _ZONE_ACCENTS = [
     {"hex": "#C6B1A1", "token": "accent4",   "name": "Aspen",    "text": "#FFFFFF"},
@@ -494,6 +499,16 @@ def _clinical_stage(title: str, body: str) -> str:
         return "monitoring"
     if any(kw in text for kw in _SCREENING_KWS):
         return "screening"
+    return "general"
+
+
+def _outcome_subtype(label: str, desc: str) -> str:
+    """Classify an outcome node into refer / monitor / general."""
+    text = (label + " " + desc).lower()
+    if any(kw in text for kw in _OUTCOME_REFER_KWS):
+        return "refer"
+    if any(kw in text for kw in _OUTCOME_MONITOR_KWS):
+        return "monitor"
     return "general"
 
 
@@ -1044,21 +1059,22 @@ def build_visualization(graph_data: dict, source_file: str) -> Optional[dict]:
         variant  = _node_variant(n_type, label, emphasis)
 
         vis_nodes.append({
-            "id":             nid,
-            "type":           n_type,
-            "variant":        variant,
-            "emphasis":       emphasis,
-            "keyword":        keyword,
-            "label":          label,
-            "raw_label":      raw_label,
-            "description":    desc,
-            "level":          levels.get(nid, 0),
-            "branch":         node_branch,
-            "clinical_stage": _clinical_stage(title_t, body_t),
-            "importance":     _node_importance(nid, n_type, resolved_root, dict(out_degree)),
-            "has_children":   bool(children_ids),
-            "children_count": len(children_ids),
-            "children_ids":   children_ids,
+            "id":               nid,
+            "type":             n_type,
+            "variant":          variant,
+            "emphasis":         emphasis,
+            "keyword":          keyword,
+            "label":            label,
+            "raw_label":        raw_label,
+            "description":      desc,
+            "level":            levels.get(nid, 0),
+            "branch":           node_branch,
+            "clinical_stage":   _clinical_stage(title_t, body_t),
+            "outcome_subtype":  _outcome_subtype(label, desc) if n_type == "outcome" else None,
+            "importance":       _node_importance(nid, n_type, resolved_root, dict(out_degree)),
+            "has_children":     bool(children_ids),
+            "children_count":   len(children_ids),
+            "children_ids":     children_ids,
         })
 
     vis_nodes.sort(key=lambda n: (n["level"], node_order_idx.get(n["id"],9999)))
