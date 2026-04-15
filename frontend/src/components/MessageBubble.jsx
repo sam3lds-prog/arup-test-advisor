@@ -2307,6 +2307,92 @@ function FollowUpBlock({ questions, onDraft }) {
 }
 
 
+/* ── CopyIcon — two overlapping rectangles (ChatGPT-style clipboard) ─── */
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      {/* back page — offset top-right */}
+      <rect x="4" y="0" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.25"/>
+      {/* front page — offset bottom-left, white fill covers the overlap */}
+      <rect x="0" y="4" width="9" height="9" rx="1.5" fill="white" stroke="currentColor" strokeWidth="1.25"/>
+    </svg>
+  )
+}
+
+/* ── CheckIcon — success tick ──────────────────────────────────────────── */
+function CheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+      <polyline
+        points="1.5,7 5,10.5 11.5,2.5"
+        stroke="currentColor" strokeWidth="1.7"
+        strokeLinecap="round" strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/* ── CopyButton — clipboard action with lightweight "Copied" feedback ─── */
+function CopyButton({ getTextFn }) {
+  const [copyState, setCopyState] = useState('idle') // 'idle' | 'copied' | 'error'
+
+  const handleCopy = async () => {
+    if (copyState !== 'idle') return
+    const text = typeof getTextFn === 'function' ? getTextFn() : ''
+    let next = 'error'
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Legacy execCommand fallback for browsers without Clipboard API
+        const ta = document.createElement('textarea')
+        ta.value = text
+        ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
+        document.body.appendChild(ta)
+        ta.focus()
+        ta.select()
+        const ok = document.execCommand('copy')
+        document.body.removeChild(ta)
+        if (!ok) throw new Error('execCommand copy failed')
+      }
+      next = 'copied'
+    } catch { /* next stays 'error' */ }
+    setCopyState(next)
+    setTimeout(() => setCopyState('idle'), 2000)
+  }
+
+  const isCopied = copyState === 'copied'
+  const isError  = copyState === 'error'
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={isCopied ? 'Copied!' : isError ? 'Copy failed — please try again' : 'Copy response'}
+      aria-label={isCopied ? 'Copied!' : 'Copy response'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '3px 6px',
+        background: 'none', border: 'none',
+        borderRadius: 4,
+        cursor: isCopied ? 'default' : 'pointer',
+        color: isCopied ? 'var(--positive)' : isError ? 'var(--danger)' : 'var(--accent)',
+        transition: 'color .15s, background .15s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={e => { if (copyState === 'idle') e.currentTarget.style.background = 'var(--neutral-200)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+    >
+      {isCopied ? <CheckIcon /> : <CopyIcon />}
+      {isCopied && (
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
+          Copied
+        </span>
+      )}
+    </button>
+  )
+}
+
+
 /* ═══════════════════════════════════════════════════════════════════════════
    MessageBubble — main export
    ─────────────────────────────────────────────────────────────────────────
@@ -2322,6 +2408,9 @@ function FollowUpBlock({ questions, onDraft }) {
    • Disclaimer
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function MessageBubble({ message, onClarificationAnswer, onFollowUpDraft, onFollowUp }) {
+  // Ref for the card body — used by CopyButton to extract plain-text response
+  const cardBodyRef = useRef(null)
+
   /* ── User bubble ── */
   if (message.role === 'user') {
     return (
@@ -2398,37 +2487,42 @@ export default function MessageBubble({ message, onClarificationAnswer, onFollow
             <span className="text-caption" style={{ color: 'var(--accent2)', fontWeight: 500 }}>
               AI Test Advisor — grounded in ARUP sources
             </span>
-            {hasClarification && (
-              <>
-                <span className="badge badge-danger" style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                  Context needed
-                </span>
-                {clar_progress && (
-                  <span className="text-caption" style={{ color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {clar_progress}
+
+            {/* Right-aligned actions: status badges + copy button */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {hasClarification && (
+                <>
+                  <span className="badge badge-danger">
+                    Context needed
                   </span>
-                )}
-              </>
-            )}
-            {/* Schema mode indicator (subtle, non-clinical) */}
-            {!hasClarification && hasSchema && (
-              <span
-                title={`Schema v2 · ${d.ui_schema.component_count} components · ${d.ui_schema.layout}`}
-                style={{
-                  marginLeft: 'auto',
-                  fontSize: 10, color: 'var(--accent3)',
-                  cursor: 'default', userSelect: 'none',
-                  letterSpacing: '0.03em',
-                }}
-              >
-                ⬡
-              </span>
-            )}
+                  {clar_progress && (
+                    <span className="text-caption" style={{ color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      {clar_progress}
+                    </span>
+                  )}
+                </>
+              )}
+              {/* Schema mode indicator (subtle, non-clinical) */}
+              {!hasClarification && hasSchema && (
+                <span
+                  title={`Schema v2 · ${d.ui_schema.component_count} components · ${d.ui_schema.layout}`}
+                  style={{
+                    fontSize: 10, color: 'var(--accent3)',
+                    cursor: 'default', userSelect: 'none',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  ⬡
+                </span>
+              )}
+              {/* Copy full response to clipboard */}
+              <CopyButton getTextFn={() => cardBodyRef.current?.innerText ?? ''} />
+            </div>
           </div>
         )}
 
-        {/* Card body */}
-        <div style={{ padding: 'var(--card-padding)' }}>
+        {/* Card body — ref used by CopyButton to extract visible plain text */}
+        <div ref={cardBodyRef} style={{ padding: 'var(--card-padding)' }}>
 
           {/* ─── Rendering mode selection ─────────────────────────── */}
 
