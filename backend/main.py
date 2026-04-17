@@ -58,6 +58,7 @@ from agents.session_store import (
     get_recent_sessions, get_clinical_context, save_clinical_context,
     get_clarification_state, record_clarification_question,
     suppress_further_clarification, resolve_pending_clarification,
+    save_feedback,
     MAX_CLARIFICATION_QUESTIONS, EMPTY_CONTEXT,
 )
 from agents.context_extractor import extract_context, summarise_session
@@ -687,6 +688,21 @@ async def list_algorithm_documents():
             "during ingest. Re-upload the algorithm file to fix."
         ),
     }
+
+
+# ── Feedback ───────────────────────────────────────────────────────────────────
+
+class FeedbackRequest(BaseModel):
+    session_id:    str
+    message_index: int
+    rating:        int   # +1 thumbs-up, -1 thumbs-down
+
+@app.post("/feedback")
+async def feedback(request: FeedbackRequest):
+    if request.rating not in (1, -1):
+        raise HTTPException(status_code=400, detail="rating must be 1 or -1")
+    save_feedback(request.session_id, request.message_index, request.rating)
+    return {"ok": True}
 
 
 # ── Chat ───────────────────────────────────────────────────────────────────────

@@ -69,6 +69,17 @@ def init_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_context_clinician
                 ON clinical_context(clinician_id);
+
+            CREATE TABLE IF NOT EXISTS message_feedback (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id   TEXT NOT NULL,
+                message_index INTEGER NOT NULL,
+                rating       INTEGER NOT NULL,
+                created_at   TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_feedback_session
+                ON message_feedback(session_id);
         """)
 
 
@@ -332,6 +343,18 @@ def suppress_further_clarification(session_id: str, clinician_id: str) -> None:
     cs["pending_question"] = None          # ← NEW: clean up any stale pending
     ctx["clarification_state"] = cs
     save_clinical_context(session_id, clinician_id, ctx)
+
+
+# ── Feedback ──────────────────────────────────────────────────────────────────
+
+def save_feedback(session_id: str, message_index: int, rating: int) -> None:
+    """Store thumbs-up (+1) or thumbs-down (-1) for a specific assistant message."""
+    with _conn() as con:
+        con.execute(
+            "INSERT INTO message_feedback (session_id, message_index, rating, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (session_id, message_index, rating, _now()),
+        )
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

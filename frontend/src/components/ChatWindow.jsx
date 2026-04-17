@@ -401,6 +401,8 @@ export default function ChatWindow({ api, hasDocuments, onSessionChange }) {
             <MessageBubble
               key={i}
               message={msg}
+              sessionId={sessionId}
+              messageIndex={i}
               onClarificationAnswer={sendQuery}
               onFollowUpDraft={setInput}
             />

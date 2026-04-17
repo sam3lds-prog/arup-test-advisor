@@ -2307,6 +2307,81 @@ function FollowUpBlock({ questions, onDraft }) {
 }
 
 
+/* ── ThumbsUpIcon ────────────────────────────────────────────────────────── */
+function ThumbsUpIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 22V11M2 13v7a2 2 0 002 2h11.5a2 2 0 001.97-1.67l1.5-9A2 2 0 0017 9h-5V5a3 3 0 00-3-3L7 11"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+/* ── ThumbsDownIcon ──────────────────────────────────────────────────────── */
+function ThumbsDownIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M17 2H6.5a2 2 0 00-1.97 1.67l-1.5 9A2 2 0 005 15h5v4a3 3 0 003 3l2-6h6M22 2v9a2 2 0 01-2 2h-3"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+/* ── FeedbackButton — thumbs up / down with single-selection state ───────── */
+function FeedbackButton({ sessionId, messageIndex }) {
+  const [voted, setVoted] = useState(null) // null | 1 | -1
+
+  const handleVote = async (rating) => {
+    if (voted !== null || !sessionId) return
+    setVoted(rating)
+    try {
+      await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, message_index: messageIndex, rating }),
+      })
+    } catch { /* fire-and-forget */ }
+  }
+
+  const btnStyle = (rating) => ({
+    display: 'flex', alignItems: 'center',
+    padding: '3px 6px',
+    background: 'none', border: 'none',
+    borderRadius: 4,
+    cursor: voted !== null ? 'default' : 'pointer',
+    color: voted === rating
+      ? (rating === 1 ? 'var(--positive)' : 'var(--danger)')
+      : 'var(--accent)',
+    transition: 'color .15s, background .15s',
+    flexShrink: 0,
+  })
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <button
+        onClick={() => handleVote(1)}
+        title="Helpful"
+        aria-label="Mark as helpful"
+        style={btnStyle(1)}
+        onMouseEnter={e => { if (voted === null) e.currentTarget.style.background = 'var(--neutral-200)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+      >
+        <ThumbsUpIcon />
+      </button>
+      <button
+        onClick={() => handleVote(-1)}
+        title="Not helpful"
+        aria-label="Mark as not helpful"
+        style={btnStyle(-1)}
+        onMouseEnter={e => { if (voted === null) e.currentTarget.style.background = 'var(--neutral-200)' }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+      >
+        <ThumbsDownIcon />
+      </button>
+    </div>
+  )
+}
+
 /* ── CopyIcon — two overlapping rectangles (ChatGPT-style clipboard) ─── */
 function CopyIcon() {
   return (
@@ -2407,7 +2482,7 @@ function CopyButton({ getTextFn }) {
    • FollowUpBlock
    • Disclaimer
    ═══════════════════════════════════════════════════════════════════════════ */
-export default function MessageBubble({ message, onClarificationAnswer, onFollowUpDraft, onFollowUp }) {
+export default function MessageBubble({ message, sessionId, messageIndex, onClarificationAnswer, onFollowUpDraft, onFollowUp }) {
   // Ref for the card body — used by CopyButton to extract plain-text response
   const cardBodyRef = useRef(null)
 
@@ -2514,6 +2589,10 @@ export default function MessageBubble({ message, onClarificationAnswer, onFollow
                 >
                   ⬡
                 </span>
+              )}
+              {/* Feedback — thumbs up / down */}
+              {!hasClarification && sessionId && (
+                <FeedbackButton sessionId={sessionId} messageIndex={messageIndex} />
               )}
               {/* Copy full response to clipboard */}
               <CopyButton getTextFn={() => cardBodyRef.current?.innerText ?? ''} />
