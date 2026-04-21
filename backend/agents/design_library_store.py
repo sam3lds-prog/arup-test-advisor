@@ -476,6 +476,14 @@ class DesignLibraryStore:
             version_summary="Approved by designer",
         )
 
+    def reopen_component(self, component_id: str) -> Optional[dict]:
+        """Reopen an approved component for editing (status -> draft)."""
+        return self.update_component(
+            component_id,
+            {"status": "draft"},
+            version_summary="Reopened for editing",
+        )
+
     def get_history(self, component_id: str) -> list[dict]:
         """Return the version history for a component."""
         data = self._load()

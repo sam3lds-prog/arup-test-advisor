@@ -66,6 +66,19 @@ from agents.algorithm_renderer import AlgorithmRenderer
 from agents.formatting_agent import FormattingAgent                  # v0.9.0
 from agents.designer_routes import build_router as build_designer_router  # v0.9.0
 
+# Fidelity-first renderer and chartflow rule store — optional
+try:
+    from agents.arup_algorithm_template_renderer import ArupAlgorithmTemplateRenderer
+    from agents.chartflow_rule_store import ChartflowRuleStore
+    from agents.chartflow_normalizer import ChartflowNormalizer
+    from agents.design_library_store import DesignLibraryStore
+    _fidelity_renderer_available = True
+except ImportError:
+    _fidelity_renderer_available = False
+    ArupAlgorithmTemplateRenderer = None
+    ChartflowRuleStore = None
+    ChartflowNormalizer = None
+
 # Asset store — optional; app works fully without it, PDF assets just won't be available
 try:
     from agents.asset_store import get_asset_store as _get_asset_store
@@ -121,6 +134,16 @@ confidence_agent  = ConfidenceAgent()
 algorithm_renderer = AlgorithmRenderer(vector_store)
 formatting_agent  = FormattingAgent()                                # v0.9.0
 asset_store       = _get_asset_store() if _asset_store_available else None  # v1.0.0 (optional)
+
+# Fidelity-first renderer — optional subsystem
+if _fidelity_renderer_available:
+    _design_lib_store = DesignLibraryStore()
+    _chartflow_rule_store = ChartflowRuleStore(_design_lib_store)
+    _chartflow_normalizer = ChartflowNormalizer()
+    # Fidelity renderer will be initialized per-request with current approved rules
+else:
+    _chartflow_rule_store = None
+    _chartflow_normalizer = None
 
 # ── Designer router (v0.9.0) ──────────────────────────────────────────────────
 # build_designer_router returns a configured APIRouter AND exposes a
@@ -846,30 +869,104 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     )
 
     # ── 7. Algorithm Rendering Engine ─────────────────────────────────────────
-    # Deterministic graph visualisation — no LLM calls.
-    # debug=True captures per-stage diagnostic info (filenames tried, graph
-    # found, node count) without affecting the rendered output.
-    algo_result   = algorithm_renderer.render_for_bundle(evidence_bundle, debug=True)
-    algorithm_viz = algo_result.get("algorithm_visualization")   # inner dict or None
-    algo_debug    = algo_result.get("_debug", {})
-
-    # Diagnostic counters — written to logs and optionally to the response
-    algo_chunk_count = sum(
-        1 for c in evidence_bundle.get("authority_sources", [])
-        if c.get("source_type") == "Algorithm"
-    )
-    cands_with_algo = sum(
-        1 for ct in evidence_bundle.get("candidate_tests", [])
-        if ct.get("confidence_signals", {}).get("has_algorithm")
-    )
-    logger.info(
-        "AlgorithmRenderer: algo_chunks=%d candidates_with_algo=%d "
-        "viz_found=%s filenames_tried=%s",
-        algo_chunk_count,
-        cands_with_algo,
-        algorithm_viz is not None,
-        [r.get("filename") for r in algo_debug.get("graph_lookup_results", [])],
-    )
+    # Two rendering paths:
+    #   1. Fidelity-first renderer (if approved chartflow rules exist)
+    #   2. Clinical renderer (fallback or when fidelity renderer unavailable)
+    
+    algorithm_viz = None
+    algo_debug = {}
+    render_mode_used = "none"
+    
+    # Try fidelity-first renderer ONLY if rules are approved
+    fidelity_attempted = False
+    if _fidelity_renderer_available and _chartflow_rule_store:
+        try:
+            approved_rules = _chartflow_rule_store.get_approved_rules()
+            
+            if approved_rules:
+                fidelity_attempted = True
+                # Find algorithm graph data from evidence bundle
+                algo_sources = evidence_bundle.get("algorithm_sources", [])
+                graph_data = None
+                for src in algo_sources:
+                    if src.get("algorithm_graph"):
+                        graph_data = src["algorithm_graph"]
+                        break
+                
+                if graph_data:
+                    # Normalize graph using chartflow categories
+                    normalized_graph = _chartflow_normalizer.normalize_graph(graph_data)
+                    
+                    # Get PDF URL if available
+                    source_pdf_url = None
+                    source_asset_id = None
+                    if algo_sources and asset_store:
+                        first_algo = algo_sources[0]
+                        filename = first_algo.get("filename", "")
+                        if filename:
+                            match_result = asset_store.find_matching_pdf(filename)
+                            if match_result:
+                                source_asset_id = match_result["asset_id"]
+                                source_pdf_url = f"/api/assets/pdf/{source_asset_id}"
+                    
+                    # Render with fidelity-first approach
+                    fidelity_renderer = ArupAlgorithmTemplateRenderer(approved_rules)
+                    fidelity_result = fidelity_renderer.render_algorithm(
+                        graph_data=graph_data,
+                        normalized_graph=normalized_graph,
+                        source_pdf_url=source_pdf_url,
+                        source_asset_id=source_asset_id,
+                    )
+                    
+                    if fidelity_result and fidelity_result.get("nodes"):
+                        algorithm_viz = fidelity_result
+                        render_mode_used = "fidelity_first"
+                        algo_debug = {
+                            "renderer": "arup_fidelity_first",
+                            "rules_version": approved_rules.get("schema_version", "unknown"),
+                            "stats": fidelity_result.get("stats", {}),
+                        }
+                        logger.info(
+                            "AlgorithmRenderer: Using fidelity-first renderer, "
+                            "nodes=%d footer_blocks=%d",
+                            len(fidelity_result.get("nodes", [])),
+                            len(fidelity_result.get("footer_blocks", [])),
+                        )
+        except Exception as e:
+            logger.warning("Fidelity-first renderer failed, will use clinical: %s", e)
+            algorithm_viz = None
+            fidelity_attempted = False
+    
+    # ALWAYS use clinical renderer if fidelity didn't produce a result
+    # This ensures algorithms always render even without approved chartflow rules
+    if algorithm_viz is None:
+        logger.info("Using clinical renderer (fidelity_attempted=%s)", fidelity_attempted)
+        algo_result = algorithm_renderer.render_for_bundle(evidence_bundle, debug=True)
+        algorithm_viz = algo_result.get("algorithm_visualization")
+        algo_debug = algo_result.get("_debug", {})
+        
+        if algorithm_viz:
+            render_mode_used = "clinical_fallback" if fidelity_attempted else "clinical_default"
+            if "renderer" not in algo_debug:
+                algo_debug["renderer"] = "clinical_graph_classifier"
+        
+        # Diagnostic counters for logging
+        algo_chunk_count = sum(
+            1 for c in evidence_bundle.get("authority_sources", [])
+            if c.get("source_type") == "Algorithm"
+        )
+        cands_with_algo = sum(
+            1 for ct in evidence_bundle.get("candidate_tests", [])
+            if ct.get("confidence_signals", {}).get("has_algorithm")
+        )
+        logger.info(
+            "AlgorithmRenderer (clinical): algo_chunks=%d candidates_with_algo=%d "
+            "viz_found=%s renderer=%s",
+            algo_chunk_count,
+            cands_with_algo,
+            algorithm_viz is not None,
+            render_mode_used,
+        )
 
     # ── 7.5 Formatting Agent — UI schema generation ────────────────────────────
     # Deterministic component composition — no LLM calls.
@@ -913,12 +1010,20 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "algorithm_visualization": algorithm_viz,
         # ── Debug block (v1.1.0) — ignored by frontend, readable in DevTools ──
         "algorithm_debug": {
-            "retrieved_algorithm_chunks":     algo_chunk_count,
-            "candidate_tests_with_algorithm": cands_with_algo,
-            "algorithm_sources_indexed":      len(evidence_bundle.get("algorithm_sources", [])),
-            "renderer_debug":                 algo_debug,
+            "render_mode_used": render_mode_used,
+            "fidelity_renderer_available": _fidelity_renderer_available,
+            "chartflow_rules_approved": bool(_chartflow_rule_store and _chartflow_rule_store.get_approved_rules()) if _chartflow_rule_store else False,
+            "retrieved_algorithm_chunks": sum(
+                1 for c in evidence_bundle.get("authority_sources", [])
+                if c.get("source_type") == "Algorithm"
+            ) if 'evidence_bundle' in locals() else 0,
+            "candidate_tests_with_algorithm": sum(
+                1 for ct in evidence_bundle.get("candidate_tests", [])
+                if ct.get("confidence_signals", {}).get("has_algorithm")
+            ) if 'evidence_bundle' in locals() else 0,
+            "algorithm_sources_indexed": len(evidence_bundle.get("algorithm_sources", [])) if 'evidence_bundle' in locals() else 0,
+            "renderer_debug": algo_debug,
             # PDF match diagnostics — shows which matching strategy fired (or why it failed)
-            # Pulled from the viz dict that AlgorithmRenderer now embeds; safe if absent.
             "pdf_match_debug": (algorithm_viz or {}).get("pdf_match_debug", {
                 "strategy": "no_viz_rendered",
             }),

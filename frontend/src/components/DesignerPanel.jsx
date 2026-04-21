@@ -32,6 +32,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import MessageBubble, { AlgorithmFlowchart } from './MessageBubble.jsx'
+import ChartflowStudio from './ChartflowStudio.jsx'
 
 const API = '/api'
 
@@ -40,6 +41,7 @@ const TABS = [
   { id: 'schema',      label: 'Schema Inspector',      icon: '⬡' },
   { id: 'preferences', label: 'Preferences',           icon: '⚙' },
   { id: 'library',     label: 'Design System Library', icon: '⊞' },
+  { id: 'chartflow',   label: 'Chartflow Studio',      icon: '◈' },
 ]
 
 /* ── Component type → badge class ───────────────────────────────────────── */
@@ -2435,7 +2437,7 @@ function FieldRow({ label, value, onChange, placeholder }) {
 export default function DesignerPanel({ open, onClose, sessionId, api }) {
   const [activeTab, setActiveTab] = useState('schema')
 
-  const panelWidth = activeTab === 'library' ? 720 : 480
+  const panelWidth = (activeTab === 'library' || activeTab === 'chartflow') ? 720 : 480
 
   return (
     <>
@@ -2476,7 +2478,9 @@ export default function DesignerPanel({ open, onClose, sessionId, api }) {
           <span style={{ fontSize: 20 }}>⬡</span>
           <div style={{ flex: 1 }}>
             <div style={{ color: 'var(--white)', fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>
-              {activeTab === 'library' ? 'Design System Library' : 'Designer Panel'}
+              {activeTab === 'library' ? 'Design System Library' 
+                : activeTab === 'chartflow' ? 'ARUP Chartflow Studio' 
+                : 'Designer Panel'}
             </div>
             <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, marginTop: 1 }}>
               {activeTab === 'library'
@@ -2536,12 +2540,13 @@ export default function DesignerPanel({ open, onClose, sessionId, api }) {
             Other tabs:  20px padding, scrollable             */}
         <div style={{
           flex: 1,
-          overflow: activeTab === 'library' ? 'hidden' : 'auto',
-          padding: activeTab === 'library' ? 0 : '20px',
+          overflow: (activeTab === 'library' || activeTab === 'chartflow') ? 'hidden' : 'auto',
+          padding: (activeTab === 'library' || activeTab === 'chartflow') ? 0 : '20px',
         }}>
           {activeTab === 'schema'      && <SchemaInspector sessionId={sessionId} api={api} />}
           {activeTab === 'preferences' && <PreferencesEditor api={api} />}
           {activeTab === 'library'     && <DesignSystemLibrary api={api} />}
+          {activeTab === 'chartflow'   && <ChartflowStudio />}
         </div>
 
         {/* Panel footer */}
@@ -2558,6 +2563,8 @@ export default function DesignerPanel({ open, onClose, sessionId, api }) {
           <span className="text-caption" style={{ color: 'var(--accent)' }}>
             {activeTab === 'library'
               ? 'Library changes persist to design_system_library.json'
+              : activeTab === 'chartflow'
+              ? 'Chartflow rules persist as versioned design artifacts'
               : 'Changes hot-reload instantly — no restart required'}
           </span>
         </div>

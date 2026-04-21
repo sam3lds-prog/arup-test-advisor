@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
+import ArupDocumentFidelityRenderer from './ArupDocumentFidelityRenderer'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MessageBubble.jsx  v2.0.0
@@ -1014,6 +1015,13 @@ function AlgorithmFlowchart({ viz, defaultViewMode, showSplitView }) {
 
   // ── Guard ────────────────────────────────────────────────────────────────
   if (!viz) return null
+
+  // ── Fidelity-first renderer path ──────────────────────────────────────────
+  // If render_mode is 'arup_document_fidelity', use the new fidelity renderer
+  // instead of the clinical renderer
+  if (viz.render_mode === 'arup_document_fidelity') {
+    return <ArupDocumentFidelityRenderer data={viz} />
+  }
 
   const {
     title, source_url, layout, layout_mode, render_mode,

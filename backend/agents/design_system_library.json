@@ -985,6 +985,599 @@
           }
         }
       ]
+    },
+    "arup_canonical_chartflow_rules": {
+      "id": "arup_canonical_chartflow_rules",
+      "name": "ARUP Canonical Chartflow Rules",
+      "type": "chartflow_rule_spec",
+      "variant": "default",
+      "status": "draft",
+      "description": "Fidelity-first rendering rules for ARUP algorithm documents",
+      "tags": [
+        "chartflow",
+        "algorithm",
+        "fidelity",
+        "taxonomy"
+      ],
+      "source_basis": {
+        "based_on": "Hierarchy_Algorithms.png visual specification",
+        "design_tokens_used": [
+          "typography",
+          "colors",
+          "spacing_rules",
+          "card_rules"
+        ],
+        "sample_assets_used": [
+          "Hierarchy_Algorithms.png"
+        ]
+      },
+      "rules": {
+        "schema_version": "arup_chartflow_rules_v1",
+        "artifact_type": "algorithm_chartflow_rule_spec",
+        "artifact_id": "arup_canonical_chartflow_v1",
+        "name": "ARUP Canonical Chartflow Rules",
+        "description": "Fidelity-first rendering rules preserving ARUP algorithm document structure",
+        "source_assets": [
+          {
+            "asset_id": "hierarchy_algorithms_seed",
+            "filename": "Hierarchy_Algorithms.png",
+            "asset_type": "image",
+            "purpose": "ARUP canonical chartflow taxonomy source"
+          }
+        ],
+        "taxonomy": {
+          "schema_version": "arup_chartflow_taxonomy_v1",
+          "source": "Hierarchy_Algorithms.png",
+          "categories": [
+            {
+              "id": "typography",
+              "label": "Typography",
+              "description": "The typeface for algorithm typography",
+              "subcategories": [
+                {
+                  "id": "italics",
+                  "label": "Italics",
+                  "description": "Italicize any italic/technical words"
+                },
+                {
+                  "id": "bold",
+                  "label": "Bold",
+                  "description": "Bold titles, subtitles and section labels"
+                },
+                {
+                  "id": "superscripts",
+                  "label": "Superscripts",
+                  "description": "Superscripts for footnote references"
+                }
+              ],
+              "visual_traits": {
+                "font_family": "Roboto",
+                "base_size": "16px",
+                "line_height": "1.6"
+              }
+            },
+            {
+              "id": "entry_trigger_point",
+              "label": "Entry / Trigger Points",
+              "description": "Start at a flow without user input",
+              "distinct_from": [
+                "input_point"
+              ],
+              "visual_traits": {
+                "background_color": "#AE132A",
+                "text_color": "#FFFFFF",
+                "border_style": "none",
+                "shape": "rounded_rectangle",
+                "min_padding": "16px 24px"
+              },
+              "semantic_traits": {
+                "is_entry": true,
+                "requires_input": false,
+                "role": "document_entry"
+              }
+            },
+            {
+              "id": "input_point",
+              "label": "Input Point",
+              "description": "Typically requires data or a value",
+              "distinct_from": [
+                "entry_trigger_point"
+              ],
+              "visual_traits": {
+                "background_color": "transparent",
+                "text_color": "#171717",
+                "border_color": "#77787B",
+                "border_width": "2px",
+                "border_style": "solid",
+                "shape": "rounded_rectangle",
+                "min_padding": "12px 16px"
+              },
+              "semantic_traits": {
+                "is_entry": false,
+                "requires_input": true,
+                "role": "data_collection"
+              }
+            },
+            {
+              "id": "process_step_node",
+              "label": "Process / Step Nodes",
+              "description": "Living without performed by system",
+              "visual_traits": {
+                "background_color": "#F5EFE7",
+                "text_color": "#171717",
+                "border_color": "#77787B",
+                "border_width": "1px",
+                "shape": "rounded_rectangle",
+                "min_padding": "12px 16px"
+              },
+              "semantic_traits": {
+                "role": "action_step",
+                "automated": true
+              }
+            },
+            {
+              "id": "singular_decision_point_binary",
+              "label": "Singular Decision Points (Binary)",
+              "description": "Yes, No, True, False, Pass, Fail, Not A, Not B, Tumor, Germ or Follicles i.e.",
+              "distinct_from": [
+                "multi_decision_consideration_point"
+              ],
+              "visual_traits": {
+                "background_color": "transparent",
+                "text_color": "#171717",
+                "border_color": "#77787B",
+                "border_width": "2px",
+                "border_style": "solid",
+                "shape": "pill",
+                "min_padding": "8px 20px"
+              },
+              "semantic_traits": {
+                "decision_type": "binary",
+                "max_branches": 2,
+                "role": "binary_branch"
+              },
+              "routing_labels": {
+                "examples": [
+                  "Yes",
+                  "No",
+                  "Positive",
+                  "Negative",
+                  "Pass",
+                  "Fail"
+                ],
+                "position": "on_edge"
+              }
+            },
+            {
+              "id": "multi_decision_consideration_point",
+              "label": "Multi-Decision / Consideration Points",
+              "description": "Evaluate options, choose palette, or weigh possibilities. \"Consider\", \"Select\", \"Determine best approach\"",
+              "distinct_from": [
+                "singular_decision_point_binary"
+              ],
+              "visual_traits": {
+                "background_color": "#FFFFFF",
+                "text_color": "#171717",
+                "border_color": "#306385",
+                "border_width": "2px",
+                "border_style": "solid",
+                "shape": "rectangle",
+                "min_padding": "16px 20px",
+                "container_style": "stacked_options"
+              },
+              "semantic_traits": {
+                "decision_type": "multi_option",
+                "max_branches": "unlimited",
+                "role": "consideration_matrix",
+                "may_contain_nested_items": true
+              },
+              "layout_notes": [
+                "Often contains multiple sub-considerations",
+                "May use container/group semantics",
+                "\"TEST 1 - Confirmation Testing\" as examples"
+              ]
+            },
+            {
+              "id": "exit_termination_point",
+              "label": "Exit / Termination Points",
+              "description": "Completion, End of flow",
+              "visual_traits": {
+                "background_color": "transparent",
+                "text_color": "#171717",
+                "border_color": "#77787B",
+                "border_width": "2px",
+                "border_style": "dashed",
+                "shape": "rounded_rectangle",
+                "min_padding": "12px 16px"
+              },
+              "semantic_traits": {
+                "role": "terminal_outcome",
+                "is_exit": true
+              }
+            },
+            {
+              "id": "flow_line",
+              "label": "Flow Lines",
+              "description": "Creates flow/order of processes",
+              "distinct_from": [
+                "section_flow_line"
+              ],
+              "visual_traits": {
+                "stroke_color": "#77787B",
+                "stroke_width": "2px",
+                "stroke_style": "solid",
+                "arrow_style": "filled_triangle"
+              },
+              "semantic_traits": {
+                "role": "node_to_node_connector",
+                "directional": true
+              }
+            },
+            {
+              "id": "section_flow_line",
+              "label": "Section Flow Lines",
+              "description": "Boxed grouping of sub-workflows across multiple nodes/areas. Creates structural/sectional boundaries.",
+              "distinct_from": [
+                "flow_line"
+              ],
+              "visual_traits": {
+                "stroke_color": "#306385",
+                "stroke_width": "2px",
+                "stroke_style": "dashed",
+                "fill": "transparent",
+                "shape": "rectangle",
+                "min_padding": "24px"
+              },
+              "semantic_traits": {
+                "role": "section_boundary",
+                "contains_multiple_nodes": true,
+                "grouping_semantic": true
+              }
+            },
+            {
+              "id": "footnotes",
+              "label": "Footnotes",
+              "description": "Superscripts with italics are considered numbered footnotes that should be listed in the alphanumeric order",
+              "visual_traits": {
+                "font_style": "italic",
+                "font_size": "14px",
+                "text_color": "#77787B",
+                "marker_style": "superscript_number"
+              },
+              "semantic_traits": {
+                "role": "footer_content",
+                "document_section": "footer",
+                "not_renderable_as_flow_node": true
+              }
+            },
+            {
+              "id": "references",
+              "label": "References",
+              "description": "Bibliographic references should be listed in the chronological order",
+              "visual_traits": {
+                "font_size": "12px",
+                "text_color": "#77787B",
+                "line_height": "1.4"
+              },
+              "semantic_traits": {
+                "role": "footer_content",
+                "document_section": "footer",
+                "not_renderable_as_flow_node": true,
+                "ordering": "chronological"
+              }
+            },
+            {
+              "id": "abbreviations_legend",
+              "label": "Abbreviations/Legend",
+              "description": "Abbreviations and their expansions",
+              "visual_traits": {
+                "font_size": "13px",
+                "text_color": "#171717",
+                "layout": "two_column"
+              },
+              "semantic_traits": {
+                "role": "footer_content",
+                "document_section": "footer",
+                "not_renderable_as_flow_node": true
+              }
+            }
+          ]
+        },
+        "extraction_metadata": {
+          "extraction_method": "deterministic_seed",
+          "extraction_version": "1.0.0",
+          "manual_review_required": false
+        }
+      },
+      "preview_props": {},
+      "conversation": [],
+      "versions": [
+        {
+          "version_id": "fc8a23b1",
+          "timestamp": "2026-04-21T15:27:23.865279+00:00",
+          "summary": "Created",
+          "rules_snapshot": {
+            "schema_version": "arup_chartflow_rules_v1",
+            "artifact_type": "algorithm_chartflow_rule_spec",
+            "artifact_id": "arup_canonical_chartflow_v1",
+            "name": "ARUP Canonical Chartflow Rules",
+            "description": "Fidelity-first rendering rules preserving ARUP algorithm document structure",
+            "source_assets": [
+              {
+                "asset_id": "hierarchy_algorithms_seed",
+                "filename": "Hierarchy_Algorithms.png",
+                "asset_type": "image",
+                "purpose": "ARUP canonical chartflow taxonomy source"
+              }
+            ],
+            "taxonomy": {
+              "schema_version": "arup_chartflow_taxonomy_v1",
+              "source": "Hierarchy_Algorithms.png",
+              "categories": [
+                {
+                  "id": "typography",
+                  "label": "Typography",
+                  "description": "The typeface for algorithm typography",
+                  "subcategories": [
+                    {
+                      "id": "italics",
+                      "label": "Italics",
+                      "description": "Italicize any italic/technical words"
+                    },
+                    {
+                      "id": "bold",
+                      "label": "Bold",
+                      "description": "Bold titles, subtitles and section labels"
+                    },
+                    {
+                      "id": "superscripts",
+                      "label": "Superscripts",
+                      "description": "Superscripts for footnote references"
+                    }
+                  ],
+                  "visual_traits": {
+                    "font_family": "Roboto",
+                    "base_size": "16px",
+                    "line_height": "1.6"
+                  }
+                },
+                {
+                  "id": "entry_trigger_point",
+                  "label": "Entry / Trigger Points",
+                  "description": "Start at a flow without user input",
+                  "distinct_from": [
+                    "input_point"
+                  ],
+                  "visual_traits": {
+                    "background_color": "#AE132A",
+                    "text_color": "#FFFFFF",
+                    "border_style": "none",
+                    "shape": "rounded_rectangle",
+                    "min_padding": "16px 24px"
+                  },
+                  "semantic_traits": {
+                    "is_entry": true,
+                    "requires_input": false,
+                    "role": "document_entry"
+                  }
+                },
+                {
+                  "id": "input_point",
+                  "label": "Input Point",
+                  "description": "Typically requires data or a value",
+                  "distinct_from": [
+                    "entry_trigger_point"
+                  ],
+                  "visual_traits": {
+                    "background_color": "transparent",
+                    "text_color": "#171717",
+                    "border_color": "#77787B",
+                    "border_width": "2px",
+                    "border_style": "solid",
+                    "shape": "rounded_rectangle",
+                    "min_padding": "12px 16px"
+                  },
+                  "semantic_traits": {
+                    "is_entry": false,
+                    "requires_input": true,
+                    "role": "data_collection"
+                  }
+                },
+                {
+                  "id": "process_step_node",
+                  "label": "Process / Step Nodes",
+                  "description": "Living without performed by system",
+                  "visual_traits": {
+                    "background_color": "#F5EFE7",
+                    "text_color": "#171717",
+                    "border_color": "#77787B",
+                    "border_width": "1px",
+                    "shape": "rounded_rectangle",
+                    "min_padding": "12px 16px"
+                  },
+                  "semantic_traits": {
+                    "role": "action_step",
+                    "automated": true
+                  }
+                },
+                {
+                  "id": "singular_decision_point_binary",
+                  "label": "Singular Decision Points (Binary)",
+                  "description": "Yes, No, True, False, Pass, Fail, Not A, Not B, Tumor, Germ or Follicles i.e.",
+                  "distinct_from": [
+                    "multi_decision_consideration_point"
+                  ],
+                  "visual_traits": {
+                    "background_color": "transparent",
+                    "text_color": "#171717",
+                    "border_color": "#77787B",
+                    "border_width": "2px",
+                    "border_style": "solid",
+                    "shape": "pill",
+                    "min_padding": "8px 20px"
+                  },
+                  "semantic_traits": {
+                    "decision_type": "binary",
+                    "max_branches": 2,
+                    "role": "binary_branch"
+                  },
+                  "routing_labels": {
+                    "examples": [
+                      "Yes",
+                      "No",
+                      "Positive",
+                      "Negative",
+                      "Pass",
+                      "Fail"
+                    ],
+                    "position": "on_edge"
+                  }
+                },
+                {
+                  "id": "multi_decision_consideration_point",
+                  "label": "Multi-Decision / Consideration Points",
+                  "description": "Evaluate options, choose palette, or weigh possibilities. \"Consider\", \"Select\", \"Determine best approach\"",
+                  "distinct_from": [
+                    "singular_decision_point_binary"
+                  ],
+                  "visual_traits": {
+                    "background_color": "#FFFFFF",
+                    "text_color": "#171717",
+                    "border_color": "#306385",
+                    "border_width": "2px",
+                    "border_style": "solid",
+                    "shape": "rectangle",
+                    "min_padding": "16px 20px",
+                    "container_style": "stacked_options"
+                  },
+                  "semantic_traits": {
+                    "decision_type": "multi_option",
+                    "max_branches": "unlimited",
+                    "role": "consideration_matrix",
+                    "may_contain_nested_items": true
+                  },
+                  "layout_notes": [
+                    "Often contains multiple sub-considerations",
+                    "May use container/group semantics",
+                    "\"TEST 1 - Confirmation Testing\" as examples"
+                  ]
+                },
+                {
+                  "id": "exit_termination_point",
+                  "label": "Exit / Termination Points",
+                  "description": "Completion, End of flow",
+                  "visual_traits": {
+                    "background_color": "transparent",
+                    "text_color": "#171717",
+                    "border_color": "#77787B",
+                    "border_width": "2px",
+                    "border_style": "dashed",
+                    "shape": "rounded_rectangle",
+                    "min_padding": "12px 16px"
+                  },
+                  "semantic_traits": {
+                    "role": "terminal_outcome",
+                    "is_exit": true
+                  }
+                },
+                {
+                  "id": "flow_line",
+                  "label": "Flow Lines",
+                  "description": "Creates flow/order of processes",
+                  "distinct_from": [
+                    "section_flow_line"
+                  ],
+                  "visual_traits": {
+                    "stroke_color": "#77787B",
+                    "stroke_width": "2px",
+                    "stroke_style": "solid",
+                    "arrow_style": "filled_triangle"
+                  },
+                  "semantic_traits": {
+                    "role": "node_to_node_connector",
+                    "directional": true
+                  }
+                },
+                {
+                  "id": "section_flow_line",
+                  "label": "Section Flow Lines",
+                  "description": "Boxed grouping of sub-workflows across multiple nodes/areas. Creates structural/sectional boundaries.",
+                  "distinct_from": [
+                    "flow_line"
+                  ],
+                  "visual_traits": {
+                    "stroke_color": "#306385",
+                    "stroke_width": "2px",
+                    "stroke_style": "dashed",
+                    "fill": "transparent",
+                    "shape": "rectangle",
+                    "min_padding": "24px"
+                  },
+                  "semantic_traits": {
+                    "role": "section_boundary",
+                    "contains_multiple_nodes": true,
+                    "grouping_semantic": true
+                  }
+                },
+                {
+                  "id": "footnotes",
+                  "label": "Footnotes",
+                  "description": "Superscripts with italics are considered numbered footnotes that should be listed in the alphanumeric order",
+                  "visual_traits": {
+                    "font_style": "italic",
+                    "font_size": "14px",
+                    "text_color": "#77787B",
+                    "marker_style": "superscript_number"
+                  },
+                  "semantic_traits": {
+                    "role": "footer_content",
+                    "document_section": "footer",
+                    "not_renderable_as_flow_node": true
+                  }
+                },
+                {
+                  "id": "references",
+                  "label": "References",
+                  "description": "Bibliographic references should be listed in the chronological order",
+                  "visual_traits": {
+                    "font_size": "12px",
+                    "text_color": "#77787B",
+                    "line_height": "1.4"
+                  },
+                  "semantic_traits": {
+                    "role": "footer_content",
+                    "document_section": "footer",
+                    "not_renderable_as_flow_node": true,
+                    "ordering": "chronological"
+                  }
+                },
+                {
+                  "id": "abbreviations_legend",
+                  "label": "Abbreviations/Legend",
+                  "description": "Abbreviations and their expansions",
+                  "visual_traits": {
+                    "font_size": "13px",
+                    "text_color": "#171717",
+                    "layout": "two_column"
+                  },
+                  "semantic_traits": {
+                    "role": "footer_content",
+                    "document_section": "footer",
+                    "not_renderable_as_flow_node": true
+                  }
+                }
+              ]
+            },
+            "extraction_metadata": {
+              "extraction_method": "deterministic_seed",
+              "extraction_version": "1.0.0",
+              "manual_review_required": false
+            }
+          },
+          "preview_props_snapshot": {}
+        }
+      ],
+      "created_at": "2026-04-21T15:27:23.865309+00:00"
     }
   }
 }

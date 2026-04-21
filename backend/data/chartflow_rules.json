@@ -1,0 +1,43 @@
+{
+  "schema_version": "1.0",
+  "artifact_id": "arup_canonical_chartflow_rules",
+  "status": "approved",
+  "taxonomy": {
+    "categories": [
+      {
+        "id": "entry_trigger_point",
+        "label": "Entry Point",
+        "visual_traits": {
+          "background_color": "#4A7C59",
+          "text_color": "#FFFFFF",
+          "shape": "rounded_rectangle"
+        }
+      },
+      {
+        "id": "singular_decision_point_binary",
+        "label": "Binary Decision",
+        "visual_traits": {
+          "background_color": "#D8D3E8",
+          "shape": "pill"
+        }
+      },
+      {
+        "id": "process_step_node",
+        "label": "Process Step",
+        "visual_traits": {
+          "background_color": "#FFFFFF",
+          "border_color": "#77787B",
+          "shape": "rounded_rectangle"
+        }
+      },
+      {
+        "id": "exit_termination_point",
+        "label": "Outcome",
+        "visual_traits": {
+          "background_color": "#F9F7F6",
+          "shape": "rounded_rectangle"
+        }
+      }
+    ]
+  }
+}

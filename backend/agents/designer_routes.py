@@ -30,6 +30,20 @@ from pydantic import BaseModel
 
 from agents.design_library_store import DesignLibraryStore
 
+# Chartflow imports (optional — app works without them)
+try:
+    from agents.chartflow_asset_extractor import ChartflowAssetExtractor
+    from agents.chartflow_normalizer import ChartflowNormalizer
+    from agents.chartflow_preview_builder import ChartflowPreviewBuilder
+    from agents.chartflow_rule_store import ChartflowRuleStore
+    _chartflow_available = True
+except ImportError:
+    _chartflow_available = False
+    ChartflowAssetExtractor = None
+    ChartflowNormalizer = None
+    ChartflowPreviewBuilder = None
+    ChartflowRuleStore = None
+
 # Singleton library store (shared across all requests)
 _library_store = DesignLibraryStore()
 
@@ -93,6 +107,26 @@ class LibraryFeedbackPayload(BaseModel):
 class LibraryApprovePayload(BaseModel):
     """Body for POST /designer/library/approve"""
     component_id: str
+
+
+class ChartflowExtractPayload(BaseModel):
+    """Body for POST /designer/chartflow/extract"""
+    asset_id: Optional[str] = None
+    asset_path: Optional[str] = None
+    graph_data: Optional[dict] = None  # Optional pre-existing graph to normalize
+
+
+class ChartflowSavePayload(BaseModel):
+    """Body for POST /designer/chartflow/save"""
+    rules_spec: dict
+    summary: str = "Updated ARUP chartflow rules"
+
+
+class ChartflowReclassifyPayload(BaseModel):
+    """Body for POST /designer/chartflow/reclassify"""
+    node_id: str
+    new_category: str
+    graph_data: dict
 
 
 # ── Route factory (takes formatting_agent instance) ───────────────────────────
@@ -497,6 +531,182 @@ def build_router(fa_instance) -> APIRouter:
             "status":       updated.get("status"),
             "message":      "Component reset to its initial version.",
         }
+
+    # ── Chartflow endpoints ───────────────────────────────────────────────────
+    
+    if _chartflow_available:
+        # Initialize chartflow subsystem
+        chartflow_extractor = ChartflowAssetExtractor()
+        chartflow_normalizer = ChartflowNormalizer()
+        chartflow_preview_builder = ChartflowPreviewBuilder()
+        chartflow_rule_store = ChartflowRuleStore(_library_store)
+        
+        @router.post("/chartflow/extract")
+        async def extract_chartflow(payload: ChartflowExtractPayload):
+            """
+            Extract ARUP chartflow rules from visual assets.
+            
+            Stage 1 of the chartflow workflow:
+              - Extract taxonomy from hierarchy asset
+              - Normalize any provided graph data
+              - Build 3-stage preview (source, interpretation, normalized)
+            
+            Returns preview model ready for frontend rendering.
+            """
+            # Extract base rules from hierarchy asset
+            rules_spec = chartflow_extractor.extract_from_hierarchy_asset(
+                asset_id=payload.asset_id,
+                asset_path=payload.asset_path,
+            )
+            
+            # If graph data provided, normalize it
+            normalized_graph = None
+            if payload.graph_data:
+                normalized_graph = chartflow_normalizer.normalize_graph(payload.graph_data)
+            
+            # Build preview
+            asset_metadata = {
+                "asset_id": payload.asset_id or "hierarchy_seed",
+                "filename": payload.asset_path or "Hierarchy_Algorithms.png",
+                "asset_type": "image",
+            }
+            
+            preview = chartflow_preview_builder.build_complete_preview(
+                asset_metadata=asset_metadata,
+                taxonomy=rules_spec.get("taxonomy", {}),
+                normalized_graph=normalized_graph or {"nodes": [], "edges": [], "footer_blocks": [], "statistics": {}, "validation": {}},
+            )
+            
+            return {
+                "rules_spec": rules_spec,
+                "preview": preview,
+                "extraction_method": "deterministic_seed",
+            }
+        
+        @router.post("/chartflow/save")
+        async def save_chartflow_rules(payload: ChartflowSavePayload):
+            """
+            Save chartflow rules as a draft artifact in the design library.
+            
+            Stage 2 of the chartflow workflow:
+              - Persist rules spec to design library
+              - Creates or updates the canonical chartflow artifact
+              - Returns updated component record
+            """
+            component = chartflow_rule_store.save_rules_draft(
+                rules_spec=payload.rules_spec,
+                summary=payload.summary,
+            )
+            
+            return {
+                "component": component,
+                "saved": True,
+                "status": component.get("status"),
+            }
+        
+        @router.get("/chartflow/library/current")
+        async def get_current_chartflow_rules():
+            """
+            Get the currently approved ARUP chartflow rules.
+            
+            Used by the algorithm rendering path to retrieve the canonical
+            fidelity-first rendering rules.
+            """
+            rules = chartflow_rule_store.get_approved_rules()
+            if rules is None:
+                # Try to get latest draft if no approved version
+                rules = chartflow_rule_store.get_latest_rules(include_drafts=True)
+            
+            if rules is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No chartflow rules found. Extract and save rules from hierarchy asset first.",
+                )
+            
+            return {
+                "rules": rules,
+                "status": "approved" if chartflow_rule_store.get_approved_rules() else "draft",
+            }
+        
+        @router.get("/chartflow/{component_id}")
+        async def get_chartflow_component(component_id: str):
+            """
+            Get a specific chartflow artifact by ID.
+            
+            Returns the full component record including rules, versions, and conversation.
+            """
+            comp = _library_store.get_component(component_id)
+            if comp is None or comp.get("type") != "chartflow_rule_spec":
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Chartflow artifact '{component_id}' not found.",
+                )
+            
+            return {"component": comp}
+        
+        @router.post("/chartflow/reclassify")
+        async def reclassify_node(payload: ChartflowReclassifyPayload):
+            """
+            Reclassify a specific node and regenerate preview.
+            
+            Allows manual correction of category assignments in the designer workflow.
+            """
+            # Find the node and update its category
+            graph_data = payload.graph_data
+            nodes = graph_data.get("nodes", [])
+            
+            for node in nodes:
+                if node.get("id") == payload.node_id:
+                    node["chartflow_category"] = payload.new_category
+                    node["classification_confidence"] = "manual"
+                    node["classification_reasoning"] = "Manually reclassified by designer"
+                    break
+            
+            # Re-normalize
+            normalized_graph = chartflow_normalizer.normalize_graph(graph_data)
+            
+            # Rebuild preview
+            rules_spec = chartflow_extractor.extract_from_hierarchy_asset()
+            preview = chartflow_preview_builder.build_complete_preview(
+                asset_metadata={"asset_id": "manual_edit", "filename": "manual_reclassification", "asset_type": "edit"},
+                taxonomy=rules_spec.get("taxonomy", {}),
+                normalized_graph=normalized_graph,
+            )
+            
+            return {
+                "node_id": payload.node_id,
+                "new_category": payload.new_category,
+                "preview": preview,
+                "reclassified": True,
+            }
+        
+        @router.post("/chartflow/approve")
+        async def approve_chartflow_rules():
+            """
+            Approve the current draft chartflow rules.
+            
+            Promotes the canonical chartflow artifact from draft → approved.
+            """
+            component = chartflow_rule_store.approve_rules()
+            return {
+                "component_id": component.get("id"),
+                "status": component.get("status"),
+                "approved": True,
+            }
+        
+        @router.post("/chartflow/reopen")
+        async def reopen_chartflow_rules():
+            """
+            Reopen approved chartflow rules for editing.
+            
+            Changes status from approved → draft.
+            """
+            component = chartflow_rule_store.reopen_for_editing()
+            return {
+                "component_id": component.get("id"),
+                "status": component.get("status"),
+                "reopened": True,
+            }
 
     # Expose the schema store so main.py can write to it
     router.schema_store = _schema_store  # type: ignore[attr-defined]
