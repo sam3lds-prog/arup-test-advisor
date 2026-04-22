@@ -2883,6 +2883,107 @@ function PdfIcon() {
   )
 }
 
+/* ── Scrollable expansion helpers for PDF export ─────────────────────────
+   html2canvas only captures what's visible inside scroll containers. Before
+   we rasterise, we walk every descendant and — for any element that is
+   actually scrolling (scrollHeight > clientHeight) or has a max-height /
+   overflow that could clip content — we temporarily set it to unconstrained
+   dimensions. After capture we restore every mutated style exactly.
+
+   Also briefly expands common collapsible buttons (clicks them open) so the
+   citations table, review concerns, and fidelity report are included in full.
+   ════════════════════════════════════════════════════════════════════════ */
+function expandScrollablesAndCollapsibles(root) {
+  if (!root) return { saved: [], clicked: [] }
+
+  const saved = []
+  const clicked = []
+
+  // ── 1. Expand scroll containers ──────────────────────────────────────
+  // Walk every descendant element and temporarily remove scroll-clipping.
+  const all = root.querySelectorAll('*')
+  all.forEach(el => {
+    try {
+      const cs = window.getComputedStyle(el)
+      const overflowY = cs.overflowY
+      const overflowX = cs.overflowX
+      const overflow  = cs.overflow
+      const isScrolling =
+        el.scrollHeight > el.clientHeight + 1 ||
+        el.scrollWidth  > el.clientWidth  + 1
+      const hasClipping =
+        /(auto|scroll|hidden)/.test(overflowY) ||
+        /(auto|scroll|hidden)/.test(overflowX) ||
+        /(auto|scroll|hidden)/.test(overflow)
+      const hasMaxHeight =
+        cs.maxHeight !== 'none' && cs.maxHeight !== '0px'
+
+      if (!isScrolling && !hasClipping && !hasMaxHeight) return
+
+      // Snapshot what we're about to mutate
+      saved.push({
+        el,
+        overflow:       el.style.overflow,
+        overflowX:      el.style.overflowX,
+        overflowY:      el.style.overflowY,
+        maxHeight:      el.style.maxHeight,
+        maxWidth:       el.style.maxWidth,
+        height:         el.style.height,
+      })
+
+      // Unclip
+      el.style.overflow  = 'visible'
+      el.style.overflowX = 'visible'
+      el.style.overflowY = 'visible'
+      el.style.maxHeight = 'none'
+      el.style.maxWidth  = 'none'
+      // If there was a hard height constraint forcing a scroll, grow to fit
+      if (isScrolling && el.scrollHeight > el.clientHeight) {
+        el.style.height = el.scrollHeight + 'px'
+      }
+    } catch (_) { /* defensive — never fail the export over one element */ }
+  })
+
+  // ── 2. Open collapsibles (citations / review concerns / fidelity card) ──
+  // Anything with an aria-expanded="false" or a ▼/▶/▶︎ chevron inside a
+  // button is clicked open. React state updates are batched so we wait a
+  // frame afterwards before taking the snapshot.
+  const buttons = root.querySelectorAll('button')
+  buttons.forEach(btn => {
+    try {
+      const ariaExp = btn.getAttribute('aria-expanded')
+      const textContent = (btn.textContent || '').trim()
+      const hasCollapsedMarker =
+        ariaExp === 'false' ||
+        textContent.endsWith('▼') ||
+        textContent.endsWith('▶') ||
+        textContent.endsWith('▶︎')
+      if (!hasCollapsedMarker) return
+      btn.click()
+      clicked.push(btn)
+    } catch (_) { /* ignore */ }
+  })
+
+  return { saved, clicked }
+}
+
+function restoreScrollablesAndCollapsibles({ saved, clicked }) {
+  // Re-close collapsibles we opened (so the UI returns to its prior state)
+  ;(clicked || []).forEach(btn => { try { btn.click() } catch (_) { /* ignore */ } })
+  // Restore every mutated style
+  ;(saved || []).forEach(({ el, overflow, overflowX, overflowY, maxHeight, maxWidth, height }) => {
+    try {
+      el.style.overflow  = overflow
+      el.style.overflowX = overflowX
+      el.style.overflowY = overflowY
+      el.style.maxHeight = maxHeight
+      el.style.maxWidth  = maxWidth
+      el.style.height    = height
+    } catch (_) { /* ignore */ }
+  })
+}
+
+
 /* ── ExportPdfButton — export response as a rich visual PDF ────────────────
    v1.2.0: produces a pixel-accurate rendering of the response bubble with
    colors, badges, algorithm flowchart, review concerns, and fidelity cards
@@ -2940,24 +3041,47 @@ function ExportPdfButton({ getElementFn, getTextFn, messageIndex, sessionId }) {
       const html2canvasMod = await import('html2canvas')
       const html2canvas = html2canvasMod.default || html2canvasMod
 
-      // Let any collapsed/expanded state settle into the DOM before capture
+      // ── v1.2.1 — Expand any scrollable/clipped containers BEFORE capture ──
+      // This ensures the algorithm flowchart (which lives inside a scrollable
+      // frame on screen) is rendered in full, along with any collapsed
+      // citations/review/fidelity sections.
+      const snapshot = expandScrollablesAndCollapsibles(element)
+
+      // Let the DOM reflow twice — once for our style mutations, once for any
+      // React re-renders triggered by the clicked collapsibles.
+      await new Promise(requestAnimationFrame)
       await new Promise(requestAnimationFrame)
 
-      // Rasterise the DOM node — scale: 2 gives retina-quality output,
-      // backgroundColor ensures the PDF background is clean white even when
-      // the bubble itself has a tinted surface via CSS variables.
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-        imageTimeout: 15000,
-        // Fix html2canvas quirks with transparent overlays + shadows
-        removeContainer: true,
-        // Preserve any inline SVG (the algorithm flowchart) at full fidelity
-        foreignObjectRendering: false,
-      })
+      let canvas
+      try {
+        // Rasterise the DOM node — scale: 2 gives retina-quality output,
+        // backgroundColor ensures the PDF background is clean white even when
+        // the bubble itself has a tinted surface via CSS variables.
+        canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false,
+          imageTimeout: 15000,
+          // Fix html2canvas quirks with transparent overlays + shadows
+          removeContainer: true,
+          // Preserve any inline SVG (the algorithm flowchart) at full fidelity
+          foreignObjectRendering: false,
+          // Explicitly size the canvas to the element's FULL unclipped height
+          // so we don't rely on html2canvas inferring it from layout.
+          windowWidth:  document.documentElement.scrollWidth,
+          windowHeight: Math.max(
+            document.documentElement.scrollHeight,
+            element.scrollHeight,
+          ),
+          height: element.scrollHeight,
+          width:  element.scrollWidth,
+        })
+      } finally {
+        // Always restore, even if html2canvas threw
+        restoreScrollablesAndCollapsibles(snapshot)
+      }
 
       // Build the PDF — US Letter portrait, points as the unit so jsPDF's
       // built-in fonts size predictably against html2canvas pixel output.
