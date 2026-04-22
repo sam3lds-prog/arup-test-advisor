@@ -24,3 +24,34 @@ logs/
 # Editor files
 .vscode/
 .idea/
+
+# Runtime files
+.pids
+logs/
+*.log
+
+# Session database (user-specific state)
+data/sessions.db
+backend/data/sessions.db
+
+# ChromaDB vector store (regenerated from uploads)
+data/chromadb/
+backend/data/chromadb/
+
+# Python virtual environment
+backend/.venv/
+*.pyc
+__pycache__/
+
+# Frontend build artifacts
+frontend/dist/
+frontend/node_modules/
+
+# Environment variables (contains API keys)
+.env
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
