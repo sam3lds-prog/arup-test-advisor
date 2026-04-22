@@ -110,8 +110,10 @@ DEFAULT_COMPOSITION_ORDER = [
     "recommendation_card",
     "table",
     "algorithm_flow",
+    "fidelity_report",
     "badge_group",
     "warning_block",
+    "review_concerns",
     "info_block",
     "citation_table",
 ]
@@ -125,8 +127,10 @@ DEFAULT_SPACING = {
         "recommendation_card": 12,
         "table":               20,
         "algorithm_flow":      16,
+        "fidelity_report":     12,
         "badge_group":          8,
         "warning_block":       14,
+        "review_concerns":     14,
         "info_block":          10,
         "citation_table":      20,
     },
@@ -551,6 +555,194 @@ def _build_citation_table(
     }
 
 
+# ── Review concerns (Critic / Review Panel output) ────────────────────────────
+
+_SEVERITY_PALETTE = {
+    "high":   {"bg": "#FEE2E2", "border": "#DC2626", "text": "#7F1D1D", "badge_cls": "badge badge-danger",   "label": "High"},
+    "medium": {"bg": "#FEF3C7", "border": "#D97706", "text": "#78350F", "badge_cls": "badge badge-info",     "label": "Medium"},
+    "low":    {"bg": "#F1F5F9", "border": "#64748B", "text": "#334155", "badge_cls": "badge badge-source-general", "label": "Low"},
+}
+
+_CONSENSUS_PALETTE = {
+    "full_consensus":    {"bg": TOKEN["positive_container"], "border_token": TOKEN["positive"], "label": "All reviewers agreed"},
+    "partial_consensus": {"bg": TOKEN["info_container"],     "border_token": TOKEN["accent"],   "label": "Partial consensus"},
+    "contentious":       {"bg": TOKEN["danger_container"],   "border_token": TOKEN["danger"],   "label": "Contentious"},
+    "single_reviewer":   {"bg": TOKEN["info_container"],     "border_token": TOKEN["accent"],   "label": "Reviewed by pathologist"},
+    "unknown":           {"bg": TOKEN["bg_salt"],            "border_token": TOKEN["accent3"],  "label": "Reviewer unavailable"},
+}
+
+
+def _build_review_concerns(
+    critique: dict,
+    priority: int,
+    overrides: dict | None = None,
+) -> dict | None:
+    """
+    Convert a CriticAgent/ReviewPanel result into a review_concerns component.
+    Returns None when the critic fully approved — we don't show noise in the
+    UI when everything is clean.
+    """
+    ov = overrides or {}
+    if not isinstance(critique, dict):
+        return None
+
+    concerns = critique.get("concerns", []) or []
+    verdict  = critique.get("verdict", "approve")
+    consensus = critique.get("consensus_level", "unknown")
+
+    # Hide block entirely when the critic approved and there is nothing to surface
+    if verdict == "approve" and not concerns:
+        return None
+
+    palette   = _CONSENSUS_PALETTE.get(consensus, _CONSENSUS_PALETTE["unknown"])
+    show_attr = ov.get("show_reviewer_attribution", True)
+
+    items: list[dict] = []
+    for c in concerns:
+        sev = c.get("severity", "low")
+        if sev not in _SEVERITY_PALETTE:
+            sev = "low"
+        sev_cfg = _SEVERITY_PALETTE[sev]
+        items.append({
+            "reviewer":      c.get("reviewer", "") if show_attr else "",
+            "category":      c.get("category", ""),
+            "severity":      sev,
+            "severity_cls":  sev_cfg["badge_cls"],
+            "severity_label": sev_cfg["label"],
+            "claim":         c.get("claim", ""),
+            "suggested_fix": c.get("suggested_fix", ""),
+        })
+
+    # Default-expanded only for escalate; partial/revise collapsed by default
+    default_expanded = ov.get("default_expanded", verdict == "escalate")
+
+    # Pick a pill colour for the header that matches verdict
+    verdict_palette = {
+        "approve":  {"cls": "badge badge-positive",       "label": "Reviewed"},
+        "revise":   {"cls": "badge badge-info",           "label": "Concerns raised"},
+        "escalate": {"cls": "badge badge-danger",         "label": "Needs clinician review"},
+    }.get(verdict, {"cls": "badge badge-source-general", "label": "Reviewed"})
+
+    return {
+        "type":    "review_concerns",
+        "variant": consensus,
+        "props": {
+            "title":              ov.get("title", "Clinical review"),
+            "consensus_level":    consensus,
+            "consensus_label":    palette["label"],
+            "verdict":            verdict,
+            "verdict_badge_cls":  verdict_palette["cls"],
+            "verdict_badge_label": verdict_palette["label"],
+            "review_summary":     critique.get("review_summary", ""),
+            "reviewer_count":     critique.get("reviewer_count", 1),
+            "concerns":           items,
+            "concern_count":      len(items),
+            "default_expanded":   default_expanded,
+            "bg_token":           palette["bg"],
+            "border_token":       palette["border_token"],
+            "show_attribution":   show_attr,
+            "title_cls":          TYPOGRAPHY["label"],
+            "body_cls":           TYPOGRAPHY["body_sm"],
+        },
+        "priority": priority,
+    }
+
+
+# ── Algorithm fidelity report ─────────────────────────────────────────────────
+
+_FIDELITY_PALETTE = {
+    "match":     {"bg": TOKEN["positive_container"], "border": TOKEN["positive"], "cls": "badge badge-positive", "label": "Match",     "icon": "✓"},
+    "partial":   {"bg": TOKEN["info_container"],     "border": TOKEN["accent"],   "cls": "badge badge-info",     "label": "Partial",   "icon": "◐"},
+    "divergent": {"bg": TOKEN["danger_container"],   "border": TOKEN["danger"],   "cls": "badge badge-danger",   "label": "Divergent", "icon": "⚠"},
+    "none":      {"bg": TOKEN["bg_salt"],            "border": TOKEN["accent3"],  "cls": "badge badge-source-general", "label": "—",     "icon": "·"},
+}
+
+
+def _build_fidelity_report(
+    fidelity: dict,
+    priority: int,
+    overrides: dict | None = None,
+) -> dict | None:
+    """
+    Render the AlgorithmFidelityCritic output as a compact panel.
+    Returns None when no score is meaningful (tier='none' and no vision run).
+    """
+    ov = overrides or {}
+    if not isinstance(fidelity, dict):
+        return None
+    tier = fidelity.get("tier", "none")
+    if tier == "none" and not fidelity.get("vision_check_run"):
+        # Don't show a useless "no comparison possible" card by default
+        if not ov.get("show_when_none", False):
+            return None
+
+    palette = _FIDELITY_PALETTE.get(tier, _FIDELITY_PALETTE["none"])
+
+    # Collapse by default for match, expand for partial/divergent
+    default_expanded = ov.get(
+        "default_expanded",
+        tier in ("partial", "divergent"),
+    )
+
+    # Compact check breakdown
+    check_rows: list[dict] = []
+    for c in fidelity.get("checks", []) or []:
+        check_rows.append({
+            "check":    c.get("check", ""),
+            "weight":   c.get("weight", 0),
+            "earned":   c.get("earned", 0),
+            "expected": c.get("expected"),
+            "actual":   c.get("actual"),
+            "pass":     bool(c.get("pass", False)),
+            "note":     c.get("note", ""),
+            "missing":  c.get("missing", []),
+        })
+
+    vision_info: dict | None = None
+    vr = fidelity.get("vision_result")
+    if fidelity.get("vision_check_run") and isinstance(vr, dict):
+        vision_info = {
+            "preserved_structure": bool(vr.get("preserved_structure", True)),
+            "missing_branches":    vr.get("missing_branches", []) or [],
+            "missing_tests":       vr.get("missing_tests", []) or [],
+            "structural_notes":    vr.get("structural_notes", "") or "",
+            "error":               vr.get("_error", "") or "",
+        }
+
+    # v1.2.0 multimodal — pass consensus + per-provider breakdown through
+    vision_consensus     = fidelity.get("vision_consensus")
+    vision_by_provider   = fidelity.get("vision_by_provider")
+
+    return {
+        "type":    "fidelity_report",
+        "variant": tier,
+        "props": {
+            "title":            ov.get("title", "Algorithm fidelity"),
+            "score":            fidelity.get("fidelity_score", 0),
+            "tier":             tier,
+            "tier_label":       palette["label"],
+            "tier_icon":        palette["icon"],
+            "tier_badge_cls":   palette["cls"],
+            "bg_token":         palette["bg"],
+            "border_token":     palette["border"],
+            "recommendation":   fidelity.get("recommendation", "proceed"),
+            "missing_elements": fidelity.get("missing_elements", []),
+            "extra_elements":   fidelity.get("extra_elements", []),
+            "checks":           check_rows,
+            "vision":           vision_info,
+            "vision_consensus":   vision_consensus,
+            "vision_by_provider": vision_by_provider,
+            "default_expanded": default_expanded,
+            "source_pdf_asset_id": fidelity.get("source_pdf_asset_id"),
+            "show_source_pdf_cta": tier in ("partial", "divergent")
+                                    and bool(fidelity.get("source_pdf_asset_id")),
+            "title_cls":        TYPOGRAPHY["label"],
+            "body_cls":         TYPOGRAPHY["body_sm"],
+        },
+        "priority": priority,
+    }
+
+
 # ── Main FormattingAgent class ─────────────────────────────────────────────────
 
 class FormattingAgent:
@@ -570,7 +762,7 @@ class FormattingAgent:
         agent.reload()                     # hot-reload rules without restart
     """
 
-    MAX_COMPONENTS = 6
+    MAX_COMPONENTS = 8
 
     def __init__(self, rules_path: Path | None = None, tokens_dir: Path | None = None):
         self._rules_path  = rules_path  or _RULES_FILE
@@ -666,6 +858,18 @@ class FormattingAgent:
                 "description": "Pill row showing which ARUP source types covered a response.",
                 "overridable": [],
             },
+            {
+                "type": "review_concerns",
+                "variants": ["full_consensus", "partial_consensus", "contentious", "single_reviewer"],
+                "description": "CriticAgent / ReviewPanel output — shows reviewer concerns with severity and reviewer attribution.",
+                "overridable": ["default_expanded", "show_reviewer_attribution", "title"],
+            },
+            {
+                "type": "fidelity_report",
+                "variants": ["match", "partial", "divergent", "none"],
+                "description": "Algorithm fidelity scorecard — compares rendered flowchart against source ARUP PDF.",
+                "overridable": ["default_expanded", "show_when_none", "title"],
+            },
         ]
 
     # ── format() — main entry point ───────────────────────────────────────────
@@ -677,6 +881,8 @@ class FormattingAgent:
         confidence: dict,
         intent: dict,
         evidence_context: dict | None = None,
+        critique: dict | None = None,
+        algorithm_fidelity: dict | None = None,
     ) -> dict:
         """
         Convert pipeline outputs into a structured UI component schema,
@@ -694,6 +900,12 @@ class FormattingAgent:
                               algorithm_debug    : dict  (from AlgorithmRenderer._debug)
                             Used to show a diagnostic info_block when algorithm
                             chunks were retrieved but visualization failed.
+        critique          : optional CriticAgent / ReviewPanel result dict
+                            (v1.2.0) — emits a review_concerns component when
+                            concerns are present.
+        algorithm_fidelity: optional AlgorithmFidelityCritic result dict
+                            (v1.2.0) — emits a fidelity_report component and
+                            can auto-trigger the split-view PDF.
 
         Returns
         -------
@@ -737,6 +949,13 @@ class FormattingAgent:
         algorithm_position = "after_recommendations" if has_recs else "after_answer"
 
         # ── Render hints ──────────────────────────────────────────────────────
+        fidelity_tier = (algorithm_fidelity or {}).get("tier")
+        open_source_pdf_auto = (
+            fidelity_tier in ("partial", "divergent")
+            and bool((algorithm_fidelity or {}).get("source_pdf_asset_id"))
+        )
+        critic_verdict = (critique or {}).get("verdict", "approve" if critique else None)
+
         render_hints = {
             "show_algorithm_first":          False,  # always false — recs come first
             "algorithm_position":            algorithm_position,
@@ -751,6 +970,10 @@ class FormattingAgent:
             "has_algorithm_viz":             has_algo,
             "algorithm_retrieved":           algo_was_retrieved,
             "algorithm_viz_failed":          algo_viz_failed,
+            # v1.2.0 — critic + fidelity hints
+            "critic_verdict":                critic_verdict,
+            "fidelity_tier":                 fidelity_tier,
+            "open_source_pdf":               open_source_pdf_auto,
         }
 
         # ── Component composition: recommendation-first clinical priority ──────
@@ -795,6 +1018,18 @@ class FormattingAgent:
             ))
             priority += 1
 
+        # 3a. Algorithm fidelity report (v1.2.0) — right next to the algorithm
+        # so clinicians see "this is how faithful the rendering is" in context.
+        if algorithm_fidelity and len(components) < max_c:
+            fidelity_comp = _build_fidelity_report(
+                algorithm_fidelity,
+                priority=priority,
+                overrides=comp_ov.get("fidelity_report"),
+            )
+            if fidelity_comp:
+                components.append(fidelity_comp)
+                priority += 1
+
         # 3b. Diagnostic info_block: algorithm chunks retrieved but viz unavailable
         # Surfaces in the UI so the failure is visible rather than silent.
         # Only shown in dev/debug — suppress in production by setting
@@ -822,6 +1057,19 @@ class FormattingAgent:
                 overrides=comp_ov.get("warning_block"),
             ))
             priority += 1
+
+        # 4a. Review concerns (v1.2.0) — surface critic/panel concerns with
+        # severity and reviewer attribution. Only shown when there is at least
+        # one concern or the verdict is not "approve".
+        if critique and len(components) < max_c:
+            review_comp = _build_review_concerns(
+                critique,
+                priority=priority,
+                overrides=comp_ov.get("review_concerns"),
+            )
+            if review_comp:
+                components.append(review_comp)
+                priority += 1
 
         # 5. Info block (evidence gaps)
         if has_gaps and len(components) < max_c:

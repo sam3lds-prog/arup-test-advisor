@@ -1706,8 +1706,10 @@ const COMPONENT_TOP_MARGIN = {
   recommendation_card: 12,
   table:               20,
   algorithm_flow:       0,
+  fidelity_report:     12,
   badge_group:          8,
   warning_block:       14,
+  review_concerns:     14,
   info_block:          10,
   citation_table:      20,
 }
@@ -1822,6 +1824,22 @@ function UISchemaRenderer({ schema }) {
         rendered.push(
           <div key={`c-${i}`} style={{ marginTop }}>
             <CitationsTable citations={schemaCitationRows(comp.props)} />
+          </div>
+        )
+        break
+
+      case 'review_concerns':
+        rendered.push(
+          <div key={`c-${i}`} style={{ marginTop }}>
+            <ReviewConcernsBlock props={comp.props} />
+          </div>
+        )
+        break
+
+      case 'fidelity_report':
+        rendered.push(
+          <div key={`c-${i}`} style={{ marginTop }}>
+            <FidelityReportBlock props={comp.props} />
           </div>
         )
         break
@@ -2119,6 +2137,383 @@ function EvidenceGapsBlock({ gaps }) {
       {gaps.map((g, i) => (
         <p key={i} className="text-caption" style={{ color: 'var(--accent2)', lineHeight: 1.5 }}>• {g}</p>
       ))}
+    </div>
+  )
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ReviewConcernsBlock (v1.2.0) — CriticAgent / ReviewPanel output
+   ──────────────────────────────────────────────────────────────────────────
+   Renders the clinical reviewer concerns with severity pills and reviewer
+   attribution.  Collapsed by default unless the verdict is "escalate".
+   ══════════════════════════════════════════════════════════════════════════ */
+function ReviewConcernsBlock({ props }) {
+  const {
+    title = 'Clinical review',
+    consensus_label,
+    verdict,
+    verdict_badge_cls,
+    verdict_badge_label,
+    review_summary,
+    reviewer_count = 1,
+    concerns = [],
+    concern_count = 0,
+    default_expanded = false,
+    bg_token = 'var(--bg-salt)',
+    border_token = 'var(--accent3)',
+    show_attribution = true,
+  } = props || {}
+
+  const [open, setOpen] = useState(!!default_expanded)
+
+  const SEVERITY_COLORS = {
+    high:   { bg: '#FEE2E2', fg: '#7F1D1D', cls: 'badge-danger',   label: 'High' },
+    medium: { bg: '#FEF3C7', fg: '#78350F', cls: 'badge-info',     label: 'Medium' },
+    low:    { bg: '#F1F5F9', fg: '#334155', cls: 'badge-source-general', label: 'Low' },
+  }
+
+  return (
+    <div style={{
+      marginTop: 14,
+      background: bg_token,
+      border: `1px solid ${border_token}`,
+      borderRadius: 'var(--card-radius)',
+      padding: '12px 16px',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', width: '100%', alignItems: 'center', gap: 10,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span className="text-label" style={{ color: 'var(--dark-sky)', fontWeight: 700 }}>
+          {title}
+        </span>
+        {verdict_badge_label && (
+          <span className={`badge ${verdict_badge_cls || 'badge-info'}`}>
+            {verdict_badge_label}
+          </span>
+        )}
+        {concern_count > 0 && (
+          <span className="text-caption" style={{ color: 'var(--accent2)' }}>
+            {concern_count} concern{concern_count === 1 ? '' : 's'}
+          </span>
+        )}
+        <span className="text-caption" style={{ marginLeft: 'auto', color: 'var(--accent)' }}>
+          {reviewer_count} reviewer{reviewer_count === 1 ? '' : 's'} · {consensus_label || ''} {open ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {review_summary && (
+        <p className="text-caption" style={{ marginTop: 6, color: 'var(--accent2)', fontStyle: 'italic' }}>
+          {review_summary}
+        </p>
+      )}
+
+      {open && concerns.length > 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {concerns.map((c, i) => {
+            const sev = SEVERITY_COLORS[c.severity] || SEVERITY_COLORS.low
+            return (
+              <div
+                key={i}
+                style={{
+                  background: sev.bg,
+                  borderLeft: `3px solid ${sev.fg}`,
+                  borderRadius: 4,
+                  padding: '8px 10px',
+                }}
+              >
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span className={`badge ${sev.cls}`}>{sev.label}</span>
+                  {c.category && (
+                    <span className="text-caption" style={{ color: sev.fg, textTransform: 'capitalize' }}>
+                      {String(c.category).replace(/_/g, ' ')}
+                    </span>
+                  )}
+                  {show_attribution && c.reviewer && (
+                    <span className="text-caption" style={{ color: sev.fg, opacity: 0.75 }}>
+                      · {c.reviewer}
+                    </span>
+                  )}
+                </div>
+                <p className="text-body-sm" style={{ color: sev.fg, lineHeight: 1.45, margin: 0 }}>
+                  {c.claim}
+                </p>
+                {c.suggested_fix && (
+                  <p className="text-caption" style={{ color: sev.fg, lineHeight: 1.45, marginTop: 4, opacity: 0.9 }}>
+                    <strong>Fix:</strong> {c.suggested_fix}
+                  </p>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FidelityReportBlock (v1.2.0) — AlgorithmFidelityCritic output
+   ──────────────────────────────────────────────────────────────────────────
+   Renders the fidelity score, tier badge, missing elements, per-check
+   breakdown, and optional vision result. Collapses by default for match,
+   expands for partial / divergent.
+   ══════════════════════════════════════════════════════════════════════════ */
+function FidelityReportBlock({ props }) {
+  const {
+    title = 'Algorithm fidelity',
+    score = 0,
+    tier = 'none',
+    tier_label,
+    tier_icon,
+    tier_badge_cls,
+    bg_token,
+    border_token,
+    recommendation,
+    missing_elements = [],
+    checks = [],
+    vision,
+    default_expanded = false,
+    source_pdf_asset_id,
+    show_source_pdf_cta,
+    /* v1.2.0 multimodal fields — optional; legacy payloads omit them */
+    vision_consensus,
+    vision_by_provider,
+  } = props || {}
+
+  const [open, setOpen] = useState(!!default_expanded)
+
+  const pdfLink = source_pdf_asset_id
+    ? `/api/assets/pdf/${source_pdf_asset_id}`
+    : null
+
+  /* Consensus chip config — surfaces "both-models" comparison status */
+  const CONSENSUS_CHIP = {
+    agreement:    { cls: 'badge badge-positive', label: '✓ Two-model agreement',   color: 'var(--positive)' },
+    partial:      { cls: 'badge badge-info',     label: '◐ Partial agreement',     color: 'var(--lab-blue)' },
+    disagreement: { cls: 'badge badge-danger',   label: '⚠ Models disagree',       color: 'var(--danger)'   },
+    error:        { cls: 'badge badge-source-general', label: 'Vision unavailable', color: 'var(--accent2)'  },
+  }
+  const consensusChip = vision_consensus ? CONSENSUS_CHIP[vision_consensus] : null
+
+  return (
+    <div style={{
+      marginTop: 12,
+      background: bg_token || 'var(--bg-salt)',
+      border: `1px solid ${border_token || 'var(--accent3)'}`,
+      borderRadius: 'var(--card-radius)',
+      padding: '12px 16px',
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', width: '100%', alignItems: 'center', gap: 10,
+          background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+          textAlign: 'left', flexWrap: 'wrap',
+        }}
+      >
+        <span style={{ fontSize: 16 }}>{tier_icon || '·'}</span>
+        <span className="text-label" style={{ color: 'var(--dark-sky)', fontWeight: 700 }}>
+          {title}
+        </span>
+        <span className={`badge ${tier_badge_cls || 'badge-info'}`}>
+          {tier_label || tier} · {score}/100
+        </span>
+        {consensusChip && (
+          <span className={consensusChip.cls}>
+            {consensusChip.label}
+          </span>
+        )}
+        <span className="text-caption" style={{ marginLeft: 'auto', color: 'var(--accent)' }}>
+          {open ? '▲' : '▼'}
+        </span>
+      </button>
+
+      {/* Prominent disagreement banner — always visible, not gated on 'open' */}
+      {vision_consensus === 'disagreement' && (
+        <div style={{
+          marginTop: 8, padding: '8px 10px',
+          background: 'var(--danger-container)',
+          border: '1px solid var(--danger)',
+          borderRadius: 4,
+        }}>
+          <p className="text-body-sm" style={{ color: 'var(--danger)', fontWeight: 600, margin: 0, lineHeight: 1.45 }}>
+            ⚠ Claude and GPT-4o disagree about whether the rendered flowchart preserves the source structure.
+          </p>
+          <p className="text-caption" style={{ color: 'var(--danger)', marginTop: 4, lineHeight: 1.45 }}>
+            Two independent models returned different verdicts — we recommend reviewing the source ARUP PDF before acting on this algorithm.
+          </p>
+        </div>
+      )}
+
+      {missing_elements.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          <p className="text-caption" style={{ color: 'var(--accent2)', fontWeight: 600, marginBottom: 2 }}>
+            Missing from rendered flowchart:
+          </p>
+          {missing_elements.slice(0, 4).map((m, i) => (
+            <p key={i} className="text-caption" style={{ color: 'var(--accent2)', lineHeight: 1.4 }}>
+              · {m}
+            </p>
+          ))}
+          {missing_elements.length > 4 && (
+            <p className="text-caption" style={{ color: 'var(--accent2)', fontStyle: 'italic' }}>
+              … and {missing_elements.length - 4} more
+            </p>
+          )}
+        </div>
+      )}
+
+      {show_source_pdf_cta && pdfLink && (
+        <div style={{ marginTop: 10 }}>
+          <a
+            href={pdfLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-body-sm"
+            style={{
+              display: 'inline-block',
+              color: 'var(--lab-blue)',
+              textDecoration: 'underline',
+              fontWeight: 600,
+            }}
+          >
+            Open source ARUP PDF →
+          </a>
+        </div>
+      )}
+
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          <p className="text-caption" style={{ color: 'var(--accent2)', fontWeight: 600, marginBottom: 6 }}>
+            Per-check breakdown:
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 4, fontSize: 12 }}>
+            <div className="text-caption" style={{ fontWeight: 600 }}>Check</div>
+            <div className="text-caption" style={{ fontWeight: 600, textAlign: 'right' }}>Earned</div>
+            <div className="text-caption" style={{ fontWeight: 600, textAlign: 'right' }}>Weight</div>
+            {checks.map((c, i) => (
+              <Fragment key={i}>
+                <div className="text-caption" style={{ color: c.pass ? 'var(--positive)' : 'var(--danger)' }}>
+                  {c.pass ? '✓' : '✗'} {String(c.check).replace(/_/g, ' ')}
+                </div>
+                <div className="text-caption" style={{ textAlign: 'right', color: 'var(--dark-sky)' }}>
+                  {c.earned}
+                </div>
+                <div className="text-caption" style={{ textAlign: 'right', color: 'var(--accent2)' }}>
+                  {c.weight}
+                </div>
+              </Fragment>
+            ))}
+          </div>
+
+          {vision && (
+            <div style={{
+              marginTop: 12, padding: '8px 10px',
+              background: 'var(--bg-salt)',
+              border: '1px dashed var(--accent3)',
+              borderRadius: 4,
+            }}>
+              <p className="text-caption" style={{ fontWeight: 600, color: 'var(--lab-blue)', marginBottom: 4 }}>
+                Visual check vs source PDF{vision_by_provider ? ' (merged from 2 models)' : ''}
+              </p>
+              {vision.error ? (
+                <p className="text-caption" style={{ color: 'var(--accent2)' }}>
+                  (vision check unavailable: {vision.error})
+                </p>
+              ) : (
+                <>
+                  {vision.structural_notes && (
+                    <p className="text-caption" style={{ color: 'var(--dark-sky)', lineHeight: 1.45 }}>
+                      {vision.structural_notes}
+                    </p>
+                  )}
+                  {vision.missing_branches && vision.missing_branches.length > 0 && (
+                    <p className="text-caption" style={{ color: 'var(--accent2)', marginTop: 4 }}>
+                      Missing branches: {vision.missing_branches.join('; ')}
+                    </p>
+                  )}
+                  {vision.missing_tests && vision.missing_tests.length > 0 && (
+                    <p className="text-caption" style={{ color: 'var(--accent2)' }}>
+                      Missing tests: {vision.missing_tests.join(', ')}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Per-provider breakdown — only when two models ran */}
+              {vision_by_provider && (
+                <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {['claude', 'openai'].map(p => {
+                    const pr = vision_by_provider[p]
+                    if (!pr) return null
+                    const providerLabel = p === 'claude' ? 'Claude Haiku' : 'GPT-4o-mini'
+                    const hasError = Boolean(pr._error)
+                    return (
+                      <div
+                        key={p}
+                        style={{
+                          padding: '6px 8px',
+                          background: 'var(--bg-primary)',
+                          border: '1px solid var(--accent3)',
+                          borderRadius: 3,
+                        }}
+                      >
+                        <p className="text-caption" style={{ fontWeight: 600, color: 'var(--dark-sky)', marginBottom: 2 }}>
+                          {providerLabel}:{' '}
+                          <span style={{
+                            color: hasError
+                              ? 'var(--accent2)'
+                              : (pr.preserved_structure ? 'var(--positive)' : 'var(--danger)'),
+                            fontWeight: 500,
+                          }}>
+                            {hasError
+                              ? 'unavailable'
+                              : (pr.preserved_structure ? 'preserved' : 'NOT preserved')}
+                          </span>
+                        </p>
+                        {hasError ? (
+                          <p className="text-caption" style={{ color: 'var(--accent2)', lineHeight: 1.4 }}>
+                            {pr._error}
+                          </p>
+                        ) : (
+                          <>
+                            {pr.structural_notes && (
+                              <p className="text-caption" style={{ color: 'var(--dark-sky)', lineHeight: 1.4 }}>
+                                {pr.structural_notes}
+                              </p>
+                            )}
+                            {(pr.missing_branches?.length > 0 || pr.missing_tests?.length > 0) && (
+                              <p className="text-caption" style={{ color: 'var(--accent2)', lineHeight: 1.4 }}>
+                                Missing: {[
+                                  ...(pr.missing_branches || []),
+                                  ...(pr.missing_tests || []).map(t => `test ${t}`),
+                                ].join('; ')}
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {recommendation && recommendation !== 'proceed' && (
+            <p className="text-caption" style={{ marginTop: 10, color: 'var(--accent2)', fontStyle: 'italic' }}>
+              Recommendation: {String(recommendation).replace(/_/g, ' ')}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -2488,89 +2883,267 @@ function PdfIcon() {
   )
 }
 
-/* ── ExportPdfButton — export response as PDF with feedback ─────────────── */
-function ExportPdfButton({ getTextFn, messageIndex, sessionId }) {
-  const [exportState, setExportState] = useState('idle') // 'idle' | 'exported' | 'error'
+/* ── ExportPdfButton — export response as a rich visual PDF ────────────────
+   v1.2.0: produces a pixel-accurate rendering of the response bubble with
+   colors, badges, algorithm flowchart, review concerns, and fidelity cards
+   fully preserved. Uses html2canvas to rasterise the DOM and jsPDF to wrap
+   the image (multi-page if needed). html2canvas is dynamically imported so
+   it doesn't bloat the main bundle — it only loads when the user clicks
+   export. Falls back to text-only rendering if the visual capture fails.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ExportPdfButton({ getElementFn, getTextFn, messageIndex, sessionId }) {
+  // States: 'idle' | 'exporting' | 'exported' | 'error'
+  const [exportState, setExportState] = useState('idle')
+
+  const buildFilename = () => {
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-')
+    const idPart = sessionId ? `_${sessionId.slice(0, 8)}` : ''
+    const msgPart = messageIndex !== undefined ? `_msg${messageIndex}` : ''
+    return `arup-response${idPart}${msgPart}_${dateStr}_${timeStr}.pdf`
+  }
+
+  // Legacy text fallback — used if the rich visual render fails
+  const exportAsText = (text) => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const margin = 15
+    const maxWidth = pageWidth - (margin * 2)
+    doc.setFontSize(14)
+    doc.setFont(undefined, 'bold')
+    doc.text('ARUP AI Test Advisor Response', margin, margin)
+    doc.setFontSize(9)
+    doc.setFont(undefined, 'normal')
+    doc.setTextColor(100)
+    doc.text(new Date().toLocaleString(), margin, margin + 7)
+    doc.setFontSize(10)
+    doc.setTextColor(0)
+    const lines = doc.splitTextToSize(text, maxWidth)
+    doc.text(lines, margin, margin + 15)
+    doc.save(buildFilename())
+  }
 
   const handleExport = async () => {
     if (exportState !== 'idle') return
-    const text = typeof getTextFn === 'function' ? getTextFn() : ''
 
-    // Don't export if content is empty
-    if (!text || !text.trim()) {
+    const element = typeof getElementFn === 'function' ? getElementFn() : null
+    if (!element) {
       setExportState('error')
       setTimeout(() => setExportState('idle'), 2000)
       return
     }
 
-    try {
-      const doc = new jsPDF()
-      const pageWidth = doc.internal.pageSize.getWidth()
-      const margin = 15
-      const maxWidth = pageWidth - (margin * 2)
+    setExportState('exporting')
 
-      // Add title
+    try {
+      // Lazy import — loads html2canvas only on first click (~45KB gzipped)
+      const html2canvasMod = await import('html2canvas')
+      const html2canvas = html2canvasMod.default || html2canvasMod
+
+      // Let any collapsed/expanded state settle into the DOM before capture
+      await new Promise(requestAnimationFrame)
+
+      // Rasterise the DOM node — scale: 2 gives retina-quality output,
+      // backgroundColor ensures the PDF background is clean white even when
+      // the bubble itself has a tinted surface via CSS variables.
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        imageTimeout: 15000,
+        // Fix html2canvas quirks with transparent overlays + shadows
+        removeContainer: true,
+        // Preserve any inline SVG (the algorithm flowchart) at full fidelity
+        foreignObjectRendering: false,
+      })
+
+      // Build the PDF — US Letter portrait, points as the unit so jsPDF's
+      // built-in fonts size predictably against html2canvas pixel output.
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'letter',
+        compress: true,
+      })
+      const pageWidth  = doc.internal.pageSize.getWidth()   // 612pt
+      const pageHeight = doc.internal.pageSize.getHeight()  // 792pt
+      const margin = 36                                     // 0.5" margin
+
+      // Header on page 1 — title + timestamp
       doc.setFontSize(14)
       doc.setFont(undefined, 'bold')
-      doc.text('ARUP AI Test Advisor Response', margin, margin)
+      doc.setTextColor(20, 20, 20)
+      doc.text('ARUP AI Test Advisor Response', margin, margin + 4)
 
-      // Add timestamp
       doc.setFontSize(9)
       doc.setFont(undefined, 'normal')
-      doc.setTextColor(100)
-      const timestamp = new Date().toLocaleString()
-      doc.text(timestamp, margin, margin + 7)
+      doc.setTextColor(110, 110, 110)
+      doc.text(new Date().toLocaleString(), margin, margin + 20)
+      if (sessionId) {
+        doc.text(`Session: ${sessionId.slice(0, 12)}`,
+          pageWidth - margin - doc.getTextWidth(`Session: ${sessionId.slice(0, 12)}`),
+          margin + 20)
+      }
 
-      // Add content
-      doc.setFontSize(10)
-      doc.setTextColor(0)
-      const lines = doc.splitTextToSize(text, maxWidth)
-      doc.text(lines, margin, margin + 15)
+      // Horizontal rule below header
+      doc.setDrawColor(174, 19, 42)       // ARUP primary red
+      doc.setLineWidth(1.2)
+      doc.line(margin, margin + 28, pageWidth - margin, margin + 28)
 
-      // Generate filename
-      const dateStr = new Date().toISOString().slice(0, 10)
-      const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-')
-      const idPart = sessionId ? `_${sessionId.slice(0, 8)}` : ''
-      const msgPart = messageIndex !== undefined ? `_msg${messageIndex}` : ''
-      const filename = `arup-response${idPart}${msgPart}_${dateStr}_${timeStr}.pdf`
+      // Image layout — full-width, aspect-preserving
+      const contentTopFirstPage = margin + 40
+      const contentTopOtherPages = margin
+      const contentBottom = pageHeight - margin
 
-      // Save the PDF
-      doc.save(filename)
+      const pdfContentWidth = pageWidth - (margin * 2)
+      const canvasAspect    = canvas.height / canvas.width
+      const scaledImgHeight = pdfContentWidth * canvasAspect
+
+      // Single-page fast path
+      if (scaledImgHeight <= (contentBottom - contentTopFirstPage)) {
+        const imgData = canvas.toDataURL('image/png')
+        doc.addImage(imgData, 'PNG',
+          margin, contentTopFirstPage,
+          pdfContentWidth, scaledImgHeight,
+          undefined, 'FAST')
+      } else {
+        // Multi-page slicing — split the canvas into page-sized chunks.
+        //
+        // We compute how many canvas pixels fit in one PDF page's vertical
+        // content area, then iterate slicing from top to bottom. First page
+        // has a smaller content area because of the header.
+        const firstPageContentHeightPdf = contentBottom - contentTopFirstPage
+        const otherPageContentHeightPdf = contentBottom - contentTopOtherPages
+
+        // Canvas pixels per PDF point (same ratio in both axes because of
+        // aspect-preserving scale-to-width)
+        const canvasPxPerPdfPoint = canvas.width / pdfContentWidth
+
+        const firstPagePxHeight = Math.floor(firstPageContentHeightPdf * canvasPxPerPdfPoint)
+        const otherPagePxHeight = Math.floor(otherPageContentHeightPdf * canvasPxPerPdfPoint)
+
+        let cursorPx = 0
+        let pageIndex = 0
+        while (cursorPx < canvas.height) {
+          const isFirst = pageIndex === 0
+          const slicePxCapacity = isFirst ? firstPagePxHeight : otherPagePxHeight
+          const actualSlicePx = Math.min(slicePxCapacity, canvas.height - cursorPx)
+
+          // Render this slice to its own canvas
+          const sliceCanvas = document.createElement('canvas')
+          sliceCanvas.width = canvas.width
+          sliceCanvas.height = actualSlicePx
+          const ctx = sliceCanvas.getContext('2d')
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height)
+          ctx.drawImage(canvas, 0, -cursorPx)
+
+          const slicePdfHeight = actualSlicePx / canvasPxPerPdfPoint
+          const sliceImgData = sliceCanvas.toDataURL('image/png')
+
+          if (!isFirst) doc.addPage()
+          const yOffset = isFirst ? contentTopFirstPage : contentTopOtherPages
+          doc.addImage(sliceImgData, 'PNG',
+            margin, yOffset,
+            pdfContentWidth, slicePdfHeight,
+            undefined, 'FAST')
+
+          cursorPx += actualSlicePx
+          pageIndex += 1
+        }
+      }
+
+      // Footer on every page — page number + disclaimer
+      const totalPages = doc.internal.getNumberOfPages()
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p)
+        doc.setFontSize(8)
+        doc.setFont(undefined, 'italic')
+        doc.setTextColor(140, 140, 140)
+        const footer = 'Grounded in uploaded ARUP content. This tool supports — but does not replace — independent clinical review.'
+        doc.text(footer, margin, pageHeight - (margin / 2), { maxWidth: pdfContentWidth - 60 })
+        const pageLabel = `Page ${p} of ${totalPages}`
+        doc.text(pageLabel,
+          pageWidth - margin - doc.getTextWidth(pageLabel),
+          pageHeight - (margin / 2))
+      }
+
+      doc.save(buildFilename())
       setExportState('exported')
-    } catch {
-      setExportState('error')
+    } catch (err) {
+      console.warn('Visual PDF export failed, attempting text fallback:', err)
+      // Fallback: text-only export (preserves the previous behaviour)
+      try {
+        const text = typeof getTextFn === 'function' ? getTextFn() : ''
+        if (text && text.trim()) {
+          exportAsText(text)
+          setExportState('exported')
+        } else {
+          setExportState('error')
+        }
+      } catch (fallbackErr) {
+        console.error('Text fallback also failed:', fallbackErr)
+        setExportState('error')
+      }
     }
-    setTimeout(() => setExportState('idle'), 2000)
+    setTimeout(() => setExportState('idle'), 2500)
   }
 
-  const isExported = exportState === 'exported'
-  const isError = exportState === 'error'
+  const isExporting = exportState === 'exporting'
+  const isExported  = exportState === 'exported'
+  const isError     = exportState === 'error'
+
+  const tooltipLabel = isExporting ? 'Rendering PDF…'
+                    : isExported  ? 'Exported!'
+                    : isError     ? 'Export failed — please try again'
+                                  : 'Export as PDF'
 
   return (
     <button
       onClick={handleExport}
-      title={isExported ? 'Exported!' : isError ? 'Export failed — please try again' : 'Export as PDF'}
-      aria-label={isExported ? 'PDF exported' : 'Export response as PDF'}
+      disabled={isExporting}
+      title={tooltipLabel}
+      aria-label={tooltipLabel}
       style={{
         display: 'flex', alignItems: 'center', gap: 4,
         padding: '3px 6px',
         background: 'none', border: 'none',
         borderRadius: 4,
-        cursor: isExported ? 'default' : 'pointer',
-        color: isExported ? 'var(--positive)' : isError ? 'var(--danger)' : 'var(--accent)',
-        transition: 'color .15s, background .15s',
+        cursor: isExporting ? 'wait' : (isExported ? 'default' : 'pointer'),
+        color: isExported  ? 'var(--positive)'
+            : isError     ? 'var(--danger)'
+            : isExporting ? 'var(--accent2)'
+                          : 'var(--accent)',
+        opacity: isExporting ? 0.7 : 1,
+        transition: 'color .15s, background .15s, opacity .15s',
         flexShrink: 0,
       }}
       onMouseEnter={e => { if (exportState === 'idle') e.currentTarget.style.background = 'var(--neutral-200)' }}
       onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
     >
-      {isExported ? <CheckIcon /> : <PdfIcon />}
-      {isExported && (
+      {isExported  ? <CheckIcon />
+       : isExporting ? <SpinnerIcon />
+       : <PdfIcon />}
+      {(isExported || isExporting) && (
         <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
-          Exported
+          {isExporting ? 'Rendering' : 'Exported'}
         </span>
       )}
     </button>
+  )
+}
+
+/* ── SpinnerIcon — small CSS-rotating indicator for PDF export ──────────── */
+function SpinnerIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      style={{ animation: 'arup-spin 0.8s linear infinite' }}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5"
+        strokeLinecap="round" strokeDasharray="14 40" />
+      <style>{`@keyframes arup-spin { to { transform: rotate(360deg); } }`}</style>
+    </svg>
   )
 }
 
@@ -2704,6 +3277,7 @@ export default function MessageBubble({ message, sessionId, messageIndex, onClar
               {/* Export response as PDF */}
               {!hasClarification && !d.isWelcome && (
                 <ExportPdfButton
+                  getElementFn={() => cardBodyRef.current}
                   getTextFn={() => cardBodyRef.current?.innerText ?? ''}
                   messageIndex={messageIndex}
                   sessionId={sessionId}

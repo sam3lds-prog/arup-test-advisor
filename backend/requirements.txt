@@ -7,3 +7,9 @@ pandas>=2.2.0
 python-multipart>=0.0.12
 python-dotenv>=1.0.1
 pydantic>=2.9.0
+# v1.2.0 — optional dependencies for AlgorithmFidelityCritic vision tier
+# Only needed if you enable the vision tier via /designer/fidelity.
+# All three degrade gracefully — missing packages simply disable the vision
+# second-opinion, deterministic fidelity scoring continues to work.
+openai>=1.50.0       # GPT-4o-mini vision (second-opinion; only when vision_provider ∈ {"openai","both"})
+pdf2image>=1.17.0    # Rasterise PDF page 1 for vision input

@@ -1,0 +1,131 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "Deterministic acceptance criteria applied to every /chat response after ResponseAgent. Failures append to evidence_gaps; they never block the response.",
+    "hot_reload_endpoint": "/designer/acceptance"
+  },
+  "rules": [
+    {
+      "id": "oncology_requires_consult",
+      "description": "Oncology test recommendations should cite a Consult Topic for clinical rationale",
+      "given": {
+        "intent_type_in": ["disease_to_test", "monitoring"],
+        "condition_keywords_any": [
+          "cancer",
+          "tumor",
+          "tumour",
+          "carcinoma",
+          "oncology",
+          "malignan",
+          "lymphoma",
+          "leukemia",
+          "leukaemia",
+          "neoplasm"
+        ]
+      },
+      "when": {
+        "rank_any": ["primary", "secondary"]
+      },
+      "then": {
+        "citation_source_type_any": ["Consult Topic"]
+      },
+      "severity": "medium",
+      "enabled": true
+    },
+    {
+      "id": "disease_to_test_needs_primary",
+      "description": "A disease_to_test query should produce at least one primary recommendation",
+      "given": {
+        "intent_type_in": ["disease_to_test"]
+      },
+      "when": {
+        "min_recommendations": 1
+      },
+      "then": {
+        "min_recommendations": 1
+      },
+      "severity": "high",
+      "enabled": true
+    },
+    {
+      "id": "reflex_needs_primary",
+      "description": "A reflex recommendation should always have a primary recommendation as its parent",
+      "given": {},
+      "when": {},
+      "then": {
+        "reflex_has_primary_parent": true
+      },
+      "severity": "high",
+      "enabled": true
+    },
+    {
+      "id": "specimen_required_for_primary",
+      "description": "Primary recommendations should include specimen requirements so the order is actionable",
+      "given": {
+        "intent_type_in": [
+          "disease_to_test",
+          "specimen_question",
+          "test_lookup",
+          "monitoring"
+        ]
+      },
+      "when": {
+        "rank_any": ["primary"],
+        "specimen_populated": true
+      },
+      "then": {
+        "specimen_required": true
+      },
+      "severity": "medium",
+      "enabled": true
+    },
+    {
+      "id": "autoimmune_requires_algorithm_or_consult",
+      "description": "Autoimmune workups should reference either an Algorithm pathway or a Consult Topic",
+      "given": {
+        "intent_type_in": ["disease_to_test", "monitoring"],
+        "condition_keywords_any": [
+          "autoimmune",
+          "lupus",
+          "sle",
+          "rheumatoid",
+          "vasculitis",
+          "scleroderma",
+          "sjogren",
+          "myositis"
+        ]
+      },
+      "when": {
+        "rank_any": ["primary", "secondary"]
+      },
+      "then": {
+        "citation_source_type_any": ["Algorithm", "Consult Topic"]
+      },
+      "severity": "medium",
+      "enabled": true
+    },
+    {
+      "id": "genetic_testing_requires_consult",
+      "description": "Genetic testing should cite a Consult Topic covering carrier status, pretest counselling, or variant interpretation",
+      "given": {
+        "intent_type_in": ["disease_to_test", "interpretation"],
+        "condition_keywords_any": [
+          "genetic",
+          "hereditary",
+          "carrier",
+          "germline",
+          "pharmacogenomic",
+          "variant"
+        ]
+      },
+      "when": {
+        "rank_any": ["primary", "secondary"]
+      },
+      "then": {
+        "citation_source_type_any": ["Consult Topic"]
+      },
+      "severity": "medium",
+      "enabled": true
+    }
+  ]
+}

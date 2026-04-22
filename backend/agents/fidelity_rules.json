@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "version": "1.1.0",
+    "description": "Thresholds and weights for AlgorithmFidelityCritic. Hot-reloadable via /designer/fidelity. Vision tier now supports Claude, OpenAI, or both providers. Set vision_provider='both' for two-model consensus — when Claude and GPT-4o disagree about structural preservation, the result auto-escalates to needs_review.",
+    "hot_reload_endpoint": "/designer/fidelity"
+  },
+  "weights": {
+    "test_codes":          25,
+    "decision_count":      15,
+    "node_coverage":       20,
+    "entry_label":         10,
+    "routing_labels":      15,
+    "footer_preservation": 15
+  },
+  "thresholds": {
+    "match_min":   85,
+    "partial_min": 60,
+    "vision_low":  60,
+    "vision_high": 84
+  },
+  "vision_check_enabled": false,
+  "vision_provider":      "claude",
+  "vision_models": {
+    "claude": "claude-haiku-4-5-20251001",
+    "openai": "gpt-4o-mini"
+  }
+}

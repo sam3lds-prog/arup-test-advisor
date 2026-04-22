@@ -443,6 +443,135 @@ class AssetStore:
 
         return base
 
+    # ── Intent-based matching (v1.1.0) ───────────────────────────────────────
+
+    def find_matching_pdf_from_intent(
+        self,
+        intent: dict,
+        min_confidence: float = 0.45,
+        origin_filter: Optional[str] = "uploaded",
+    ) -> Optional[dict]:
+        """
+        Rank all registered PDF assets by relevance to a clinical intent dict
+        (output of PromptAgent).  Returns the best match or None.
+
+        Scoring combines three signals:
+          • title_slug     token overlap with intent terms      (weight 0.5)
+          • filename_slug  token overlap with intent terms      (weight 0.3)
+          • exact-condition bonus (condition slug appears in    (+0.2)
+            title_slug)
+
+        The returned dict mirrors find_matching_pdf() plus two extra keys:
+          match_confidence : float (0–1+)
+          match_method     : "intent_token_scoring"
+        """
+        conditions = [str(c) for c in (intent.get("conditions") or []) if c]
+        concepts   = [str(c) for c in (intent.get("clinical_concepts") or []) if c]
+        tests      = [str(t) for t in (intent.get("tests_mentioned")  or []) if t]
+
+        terms = conditions + concepts + tests
+        if not terms:
+            return None
+
+        # Build query token set from combined intent terms
+        query_slug = _normalize_slug(" ".join(terms))
+        if not query_slug:
+            return None
+
+        all_rows = self.list_assets(origin=origin_filter)
+        if not all_rows:
+            return None
+
+        best_score = 0.0
+        best_row   = None
+
+        for row in all_rows:
+            title_slug = row.get("title_slug", "") or ""
+            fname_slug = _normalize_slug(Path(row.get("original_filename", "")).stem)
+
+            title_score    = _token_overlap(query_slug, title_slug)    if title_slug else 0.0
+            filename_score = _token_overlap(query_slug, fname_slug)    if fname_slug else 0.0
+
+            # Exact-condition bonus — any condition slug contained in title_slug
+            exact_bonus = 0.0
+            for cond in conditions:
+                cond_slug = _normalize_slug(cond)
+                if cond_slug and title_slug and cond_slug in title_slug:
+                    exact_bonus = 0.2
+                    break
+
+            combined = (title_score * 0.5) + (filename_score * 0.3) + exact_bonus
+
+            if combined > best_score:
+                best_score = combined
+                best_row   = row
+
+        if best_row and best_score >= min_confidence:
+            result = dict(best_row)
+            result["match_confidence"] = round(best_score, 3)
+            result["match_method"]     = "intent_token_scoring"
+            return result
+
+        return None
+
+    def find_matching_pdf_by_test_code(
+        self,
+        test_codes: list,
+        search_fn=None,
+        origin_filter: Optional[str] = "uploaded",
+    ) -> Optional[dict]:
+        """
+        Match a PDF asset whose original_filename or title contains any of the
+        supplied test codes.  This is a cheap best-effort match: we do NOT scan
+        the vector store here (that would require a callback).  If the caller
+        wants chunk-level test-code matching they can pass search_fn(code) that
+        returns a filename hint.
+
+        Returns the first matching asset record or None.
+        """
+        codes = [str(c).strip() for c in (test_codes or []) if str(c).strip()]
+        if not codes:
+            return None
+
+        all_rows = self.list_assets(origin=origin_filter)
+        if not all_rows:
+            return None
+
+        # Priority 1: caller-supplied search function (e.g. VectorStore-backed)
+        if callable(search_fn):
+            for code in codes:
+                try:
+                    filename_hint = search_fn(code)
+                except Exception:
+                    filename_hint = None
+                if not filename_hint:
+                    continue
+                match = self.find_matching_pdf(filename=filename_hint)
+                if match:
+                    match = dict(match)
+                    match["match_confidence"] = 0.9
+                    match["match_method"]     = "test_code_via_store"
+                    match["matched_code"]     = code
+                    return match
+
+        # Priority 2: filename or title contains the code literally
+        for code in codes:
+            code_l = code.lower()
+            for row in all_rows:
+                hay = (
+                    (row.get("original_filename", "") or "").lower()
+                    + " "
+                    + (row.get("title", "") or "").lower()
+                )
+                if code_l in hay:
+                    result = dict(row)
+                    result["match_confidence"] = 0.7
+                    result["match_method"]     = "test_code_literal"
+                    result["matched_code"]     = code
+                    return result
+
+        return None
+
     # ── Local URL builder ────────────────────────────────────────────────────
 
     @staticmethod

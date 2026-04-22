@@ -129,15 +129,40 @@ class ChartflowReclassifyPayload(BaseModel):
     graph_data: dict
 
 
+# ── v1.2.0 — Acceptance + Fidelity payload models ─────────────────────────────
+
+class AcceptanceRulesPayload(BaseModel):
+    """Body for POST /designer/acceptance"""
+    rules:      dict
+    updated_by: Optional[str] = "designer"
+
+
+class FidelityRulesPayload(BaseModel):
+    """Body for POST /designer/fidelity"""
+    rules:      dict
+    updated_by: Optional[str] = "designer"
+
+
 # ── Route factory (takes formatting_agent instance) ───────────────────────────
 
-def build_router(fa_instance) -> APIRouter:
+def build_router(
+    fa_instance,
+    acceptance_checker=None,   # v1.2.0 — optional
+    fidelity_critic=None,      # v1.2.0 — optional
+) -> APIRouter:
     """
     Returns the configured router with access to the FormattingAgent singleton.
     Called once from main.py:
 
         from agents.designer_routes import build_router
-        app.include_router(build_router(formatting_agent))
+        app.include_router(build_router(
+            formatting_agent,
+            acceptance_checker=acceptance_checker,
+            fidelity_critic=fidelity_critic,
+        ))
+
+    If acceptance_checker / fidelity_critic are None, the related endpoints
+    still mount but return 503 with a clear message.
     """
 
     # In-memory store for per-session schema snapshots (populated by main.py)
@@ -707,6 +732,118 @@ def build_router(fa_instance) -> APIRouter:
                 "status": component.get("status"),
                 "reopened": True,
             }
+
+    # ── v1.2.0 — Acceptance criteria endpoints ────────────────────────────────
+    #
+    # Expose the deterministic acceptance rules for designer editing and
+    # hot-reload.  Runtime: AcceptanceChecker.check() runs in main.py after
+    # ResponseAgent and appends failures to evidence_gaps.
+
+    @router.get("/acceptance")
+    async def get_acceptance_rules():
+        """Return the current acceptance_rules.json content."""
+        if acceptance_checker is None:
+            raise HTTPException(
+                status_code=503,
+                detail="AcceptanceChecker is not initialised in this process.",
+            )
+        return {
+            "rules":             acceptance_checker.get_rules(),
+            "rule_count":        len(acceptance_checker.get_rules().get("rules", [])),
+            "rules_file":        str(acceptance_checker._rules_path),
+        }
+
+    @router.post("/acceptance")
+    async def save_acceptance_rules(payload: AcceptanceRulesPayload):
+        """Persist updated acceptance rules and hot-reload the checker."""
+        if acceptance_checker is None:
+            raise HTTPException(
+                status_code=503,
+                detail="AcceptanceChecker is not initialised in this process.",
+            )
+        rules = payload.rules
+        # Stamp metadata
+        rules.setdefault("_meta", {})
+        rules["_meta"]["last_updated"] = datetime.now(timezone.utc).isoformat()
+        rules["_meta"]["updated_by"]   = payload.updated_by
+        try:
+            acceptance_checker.set_rules(rules)
+        except (OSError, PermissionError) as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to write acceptance_rules.json: {e}",
+            )
+        return {
+            "success":     True,
+            "message":     "Acceptance rules saved and hot-reloaded.",
+            "rule_count":  len(rules.get("rules", [])),
+            "updated_by":  payload.updated_by,
+            "last_updated": rules["_meta"]["last_updated"],
+        }
+
+    @router.post("/acceptance/reload")
+    async def reload_acceptance_rules():
+        """Force reload of acceptance_rules.json from disk (no-op if unchanged)."""
+        if acceptance_checker is None:
+            raise HTTPException(status_code=503, detail="AcceptanceChecker unavailable")
+        acceptance_checker.reload()
+        return {
+            "success":    True,
+            "rule_count": len(acceptance_checker.get_rules().get("rules", [])),
+        }
+
+    # ── v1.2.0 — Fidelity-critic tuning endpoints ─────────────────────────────
+    #
+    # Expose the algorithm fidelity rules (weights, thresholds, vision_check_enabled)
+    # for designer editing and hot-reload.  Runtime: AlgorithmFidelityCritic.review()
+    # runs in main.py after the algorithm is rendered.
+
+    @router.get("/fidelity")
+    async def get_fidelity_rules():
+        """Return current fidelity_rules.json content (weights + thresholds)."""
+        if fidelity_critic is None:
+            raise HTTPException(
+                status_code=503,
+                detail="AlgorithmFidelityCritic is not initialised in this process.",
+            )
+        return {
+            "rules":      fidelity_critic.get_rules(),
+            "rules_file": str(fidelity_critic._rules_path),
+        }
+
+    @router.post("/fidelity")
+    async def save_fidelity_rules(payload: FidelityRulesPayload):
+        """Persist updated fidelity rules and hot-reload the critic."""
+        if fidelity_critic is None:
+            raise HTTPException(
+                status_code=503,
+                detail="AlgorithmFidelityCritic is not initialised in this process.",
+            )
+        rules = payload.rules
+        rules.setdefault("_meta", {})
+        rules["_meta"]["last_updated"] = datetime.now(timezone.utc).isoformat()
+        rules["_meta"]["updated_by"]   = payload.updated_by
+        try:
+            fidelity_critic.set_rules(rules)
+        except (OSError, PermissionError) as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to write fidelity_rules.json: {e}",
+            )
+        return {
+            "success":      True,
+            "message":      "Fidelity rules saved and hot-reloaded.",
+            "updated_by":   payload.updated_by,
+            "last_updated": rules["_meta"]["last_updated"],
+        }
+
+    @router.post("/fidelity/reload")
+    async def reload_fidelity_rules():
+        """Force reload of fidelity_rules.json from disk."""
+        if fidelity_critic is None:
+            raise HTTPException(status_code=503, detail="FidelityCritic unavailable")
+        fidelity_critic.reload()
+        return {"success": True, "rules": fidelity_critic.get_rules()}
 
     # Expose the schema store so main.py can write to it
     router.schema_store = _schema_store  # type: ignore[attr-defined]

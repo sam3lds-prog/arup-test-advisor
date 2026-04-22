@@ -1,7 +1,29 @@
 """
-ARUP AI Test Advisor — FastAPI backend  v1.0.0
+ARUP AI Test Advisor — FastAPI backend  v1.2.0
 
-What's new in v1.0.0 — Algorithm Renderer Robustness + Debug:
+What's new in v1.2.0 — Agentic framework integration:
+  • Clinical review critic (SingleCritic or ReviewPanel, selected by CRITIC_MODE
+    env var) runs between ResponseAgent and ConfidenceAgent. Verdict "revise"
+    triggers ONE ResponseAgent re-run with critique injected; "escalate" bumps
+    needs_review and surfaces concerns in UI. Max one revision per turn.
+  • AcceptanceChecker runs deterministic Gherkin-style structural rules after
+    the critic. Failures append to evidence_gaps; high-severity failures bump
+    needs_review. Rules live in acceptance_rules.json (hot-reloadable).
+  • AlgorithmFidelityCritic scores rendered viz vs source ARUP graph on six
+    weighted deterministic checks (test codes, decisions, node coverage, entry
+    label, routing labels, footer). Optional vision tier gated by borderline
+    score + enable flag in fidelity_rules.json. Divergent tier bumps
+    needs_review and triggers split-view PDF auto-open.
+  • Auto-pickup source PDF uses a 4-priority cascade (retrieved filename →
+    intent tokens → test code → none) so the fidelity renderer and critic
+    always have a source PDF to compare against when one exists.
+  • Fidelity renderer now uses get_effective_rules() — approved → draft →
+    bootstrap default — so it never silently skips for lack of configuration.
+  • FormattingAgent emits two new component variants: review_concerns and
+    fidelity_report. New render_hint `open_source_pdf` drives split-view
+    auto-open for partial/divergent fidelity tiers.
+
+What's retained from v1.0.0 — Algorithm Renderer Robustness + Debug:
   • AlgorithmRenderer.render_for_bundle() called with debug=True — captures
     per-stage diagnostic info (filenames tried, graph found, node count)
   • FormattingAgent.format() receives evidence_context — enables the diagnostic
@@ -87,9 +109,35 @@ except ImportError:
     _asset_store_available = False
     _get_asset_store = None
 
+# ── v1.2.0 — Clinical review critic + acceptance checker + fidelity critic ──
+# All three are optional. Missing or broken modules degrade gracefully to the
+# v1.0.0 pipeline behaviour — guard with try/except ImportError so a file-level
+# bug never crashes the server at startup.
+try:
+    from agents.critic_agent import SingleCritic, ReviewPanel
+    _critic_available = True
+except ImportError:
+    _critic_available = False
+    SingleCritic = None
+    ReviewPanel = None
+
+try:
+    from agents.acceptance_checker import AcceptanceChecker
+    _acceptance_available = True
+except ImportError:
+    _acceptance_available = False
+    AcceptanceChecker = None
+
+try:
+    from agents.algorithm_fidelity_critic import AlgorithmFidelityCritic
+    _fidelity_critic_available = True
+except ImportError:
+    _fidelity_critic_available = False
+    AlgorithmFidelityCritic = None
+
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="ARUP AI Test Advisor API", version="1.0.0")
+app = FastAPI(title="ARUP AI Test Advisor API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -135,6 +183,39 @@ algorithm_renderer = AlgorithmRenderer(vector_store)
 formatting_agent  = FormattingAgent()                                # v0.9.0
 asset_store       = _get_asset_store() if _asset_store_available else None  # v1.0.0 (optional)
 
+# v1.2.0 — optional review + fidelity components (all degrade gracefully)
+# The critic can run in two modes controlled by env var CRITIC_MODE:
+#   - "single" (default) → SingleCritic (1 Haiku call)
+#   - "panel"            → ReviewPanel  (3 parallel Haiku calls)
+_critic_mode = os.environ.get("CRITIC_MODE", "single").lower().strip()
+if _critic_available:
+    try:
+        critic_agent = ReviewPanel() if _critic_mode == "panel" else SingleCritic()
+        logger.info("Critic initialised in mode=%s", _critic_mode)
+    except Exception as exc:
+        logger.warning("Critic init failed (%s) — disabled for this process", exc)
+        critic_agent = None
+else:
+    critic_agent = None
+
+if _acceptance_available:
+    try:
+        acceptance_checker = AcceptanceChecker()
+    except Exception as exc:
+        logger.warning("AcceptanceChecker init failed (%s) — disabled", exc)
+        acceptance_checker = None
+else:
+    acceptance_checker = None
+
+if _fidelity_critic_available:
+    try:
+        fidelity_critic = AlgorithmFidelityCritic()
+    except Exception as exc:
+        logger.warning("AlgorithmFidelityCritic init failed (%s) — disabled", exc)
+        fidelity_critic = None
+else:
+    fidelity_critic = None
+
 # Fidelity-first renderer — optional subsystem
 if _fidelity_renderer_available:
     _design_lib_store = DesignLibraryStore()
@@ -148,7 +229,13 @@ else:
 # ── Designer router (v0.9.0) ──────────────────────────────────────────────────
 # build_designer_router returns a configured APIRouter AND exposes a
 # schema_store dict that /chat writes into for live Designer Panel inspection.
-designer_router = build_designer_router(formatting_agent)
+# v1.2.0 — also wires acceptance_checker + fidelity_critic for the new
+# /designer/acceptance and /designer/fidelity endpoints (None-safe).
+designer_router = build_designer_router(
+    formatting_agent,
+    acceptance_checker=acceptance_checker,
+    fidelity_critic=fidelity_critic,
+)
 app.include_router(designer_router)
 _designer_schema_store: dict = designer_router.schema_store          # v0.9.0
 
@@ -171,6 +258,66 @@ def _resolve_folder_hint(document_type: Optional[str], filename: str) -> str:
 
 def _empty_clar_state() -> dict:
     return copy.deepcopy(EMPTY_CONTEXT["clarification_state"])
+
+
+# ── v1.2.0 — Auto-pickup source PDF for fidelity rendering & critic ──────────
+
+def _resolve_source_pdf_asset(
+    evidence_bundle: dict,
+    intent: dict,
+) -> Optional[dict]:
+    """
+    Four-priority cascade to resolve a source ARUP PDF asset for the current
+    query. Returns the asset record dict or None.
+
+    Priority:
+      1. Retrieved algorithm chunk's filename (existing behaviour — preserved
+         so we never regress the happy path)
+      2. Intent-keyed match (asset_store.find_matching_pdf_from_intent)
+      3. Test-code match     (asset_store.find_matching_pdf_by_test_code)
+      4. None                (critic runs deterministic-only, no split-view)
+
+    The cascade short-circuits on the first hit.
+    """
+    if asset_store is None:
+        return None
+
+    # Priority 1 — retrieved algorithm chunk filename
+    try:
+        algo_sources = evidence_bundle.get("algorithm_sources", []) or []
+        for src in algo_sources:
+            fname = src.get("filename") or ""
+            if not fname:
+                continue
+            match = asset_store.find_matching_pdf(filename=fname)
+            if match:
+                match = dict(match)
+                match.setdefault("match_method",     "retrieved_filename")
+                match.setdefault("match_confidence", 1.0)
+                return match
+    except Exception as exc:
+        logger.warning("Source PDF priority 1 (retrieved filename) failed: %s", exc)
+
+    # Priority 2 — intent-based token scoring
+    try:
+        if hasattr(asset_store, "find_matching_pdf_from_intent"):
+            match = asset_store.find_matching_pdf_from_intent(intent or {})
+            if match:
+                return match
+    except Exception as exc:
+        logger.warning("Source PDF priority 2 (intent) failed: %s", exc)
+
+    # Priority 3 — test-code match
+    try:
+        if hasattr(asset_store, "find_matching_pdf_by_test_code"):
+            codes = (intent or {}).get("tests_mentioned", []) or []
+            match = asset_store.find_matching_pdf_by_test_code(codes)
+            if match:
+                return match
+    except Exception as exc:
+        logger.warning("Source PDF priority 3 (test code) failed: %s", exc)
+
+    return None
 
 
 # ── Request models ─────────────────────────────────────────────────────────────
@@ -239,15 +386,30 @@ async def health():
                              os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")),
         "response_model":    os.environ.get("CLAUDE_RESPONSE_MODEL",
                              os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")),
-        "version":           "1.0.0",
+        "version":           "1.2.0",
         "document_types":    list(DOCUMENT_TYPE_HINT_MAP.keys()),
         "pipeline": (
-            "planner → retrieval → evidence_bundle → response → "
-            "confidence → algorithm → formatting"
+            "planner → retrieval → evidence_bundle → response → critic → "
+            "confidence → acceptance → algorithm → fidelity_critic → formatting"
         ),
         "clarification":     f"max {MAX_CLARIFICATION_QUESTIONS} questions/session, 1 per turn",
         "designer_panel":    "active — /designer/*",
         "preferences_applied": formatting_agent._preferences_applied,
+        # v1.2.0 subsystem status
+        "critic": {
+            "enabled": critic_agent is not None,
+            "mode":    _critic_mode if critic_agent is not None else "disabled",
+        },
+        "acceptance_checker": {
+            "enabled":    acceptance_checker is not None,
+            "rule_count": len(acceptance_checker.get_rules().get("rules", []))
+                          if acceptance_checker is not None else 0,
+        },
+        "algorithm_fidelity_critic": {
+            "enabled": fidelity_critic is not None,
+            "vision_enabled": fidelity_critic.get_rules().get("vision_check_enabled", False)
+                              if fidelity_critic is not None else False,
+        },
     }
 
 
@@ -863,27 +1025,107 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
     # ── 5. Response Agent ──────────────────────────────────────────────────────
     response = await response_agent.generate(query, intent, evidence_bundle)
 
+    # ── 5.5 Clinical review critic (v1.2.0) ───────────────────────────────────
+    # Runs the SingleCritic (pathologist) or ReviewPanel (3 reviewers) against
+    # the response+evidence. If the critic says "revise", we do ONE re-run of
+    # ResponseAgent with the critique injected, then stop (hard cost cap).
+    # If the critic says "escalate", we set needs_review and surface concerns.
+    critique = None
+    critic_revised = False
+    if critic_agent is not None:
+        try:
+            critique = await critic_agent.review(
+                query=query, intent=intent,
+                response=response, evidence_bundle=evidence_bundle,
+            )
+            verdict = (critique or {}).get("verdict", "approve")
+
+            if verdict == "revise":
+                # One revision attempt — feed critique back into ResponseAgent
+                try:
+                    concerns = (critique or {}).get("concerns", []) or []
+                    concern_lines = []
+                    for c in concerns[:6]:
+                        concern_lines.append(
+                            f"- [{c.get('severity','?')}|{c.get('category','?')}] "
+                            f"{c.get('claim','')} → {c.get('suggested_fix','')}"
+                        )
+                    critique_note = (
+                        "\n\n[CLINICAL REVIEWER FEEDBACK — incorporate before finalising]\n"
+                        + "\n".join(concern_lines)
+                        + "\n[End Reviewer Feedback]"
+                    )
+                    revised_query = query + critique_note
+                    revised = await response_agent.generate(
+                        revised_query, intent, evidence_bundle,
+                    )
+                    # Use revised output if it parsed into recommendations
+                    if revised and isinstance(revised, dict):
+                        response = revised
+                        critic_revised = True
+                        logger.info("Critic: response revised after 'revise' verdict")
+                except Exception as exc:
+                    logger.warning("Critic revision re-run failed: %s", exc)
+        except Exception as exc:
+            logger.warning("Critic review failed (%s) — continuing without critique", exc)
+            critique = None
+
     # ── 6. Confidence Agent ────────────────────────────────────────────────────
     confidence = confidence_agent.score(
         query, evidence_bundle, response, intent_type=intent_type
     )
 
+    # ── 6.5 Critic-driven confidence escalation (v1.2.0) ──────────────────────
+    if critique and (critique.get("verdict") == "escalate"):
+        confidence["needs_review"] = True
+        factors = confidence.setdefault("factors", [])
+        summary = (critique.get("review_summary") or "Clinical reviewer escalated this response").strip()
+        factors.append(f"Clinical review escalated: {summary[:160]}")
+
+    # ── 6.6 Acceptance criteria self-check (v1.2.0) ───────────────────────────
+    # Deterministic structural checks. Failures are appended to evidence_gaps
+    # so the clinician sees them, and high-severity failures bump needs_review.
+    acceptance_failures: list = []
+    if acceptance_checker is not None:
+        try:
+            acceptance_failures = acceptance_checker.check(response, intent)
+            if acceptance_failures:
+                gaps = response.setdefault("evidence_gaps", [])
+                for f in acceptance_failures:
+                    gaps.append(f.get("gap_message", ""))
+                if any(f.get("severity") == "high" for f in acceptance_failures):
+                    confidence["needs_review"] = True
+                    confidence.setdefault("factors", []).append(
+                        f"Acceptance checks failed ({len(acceptance_failures)} rule(s))"
+                    )
+        except Exception as exc:
+            logger.warning("AcceptanceChecker failed (%s) — skipped", exc)
+
     # ── 7. Algorithm Rendering Engine ─────────────────────────────────────────
     # Two rendering paths:
-    #   1. Fidelity-first renderer (if approved chartflow rules exist)
-    #   2. Clinical renderer (fallback or when fidelity renderer unavailable)
+    #   1. Fidelity-first renderer (uses effective rules — bootstrap default
+    #      if nothing has been approved/drafted yet, so it always runs)
+    #   2. Clinical renderer (fallback if fidelity renderer returns no viz)
     
     algorithm_viz = None
     algo_debug = {}
     render_mode_used = "none"
+    source_graph_for_fidelity: Optional[dict] = None   # v1.2.0 — fidelity critic input
     
-    # Try fidelity-first renderer ONLY if rules are approved
+    # Try fidelity-first renderer when available — uses effective rules so
+    # it no longer requires a manual Approve step (v1.2.0).
     fidelity_attempted = False
+    effective_rules: Optional[dict] = None
     if _fidelity_renderer_available and _chartflow_rule_store:
         try:
-            approved_rules = _chartflow_rule_store.get_approved_rules()
+            # v1.2.0 — get_effective_rules() returns approved → draft → bootstrap,
+            # so the fidelity renderer always has SOMETHING to work with.
+            if hasattr(_chartflow_rule_store, "get_effective_rules"):
+                effective_rules = _chartflow_rule_store.get_effective_rules()
+            else:
+                effective_rules = _chartflow_rule_store.get_approved_rules()
             
-            if approved_rules:
+            if effective_rules:
                 fidelity_attempted = True
                 # Find algorithm graph data from evidence bundle
                 algo_sources = evidence_bundle.get("algorithm_sources", [])
@@ -894,23 +1136,24 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                         break
                 
                 if graph_data:
+                    source_graph_for_fidelity = graph_data  # v1.2.0 — save for critic
                     # Normalize graph using chartflow categories
                     normalized_graph = _chartflow_normalizer.normalize_graph(graph_data)
                     
-                    # Get PDF URL if available
-                    source_pdf_url = None
+                    # ── v1.2.0 auto-pickup PDF (4-priority cascade) ─────────
+                    source_pdf_asset = _resolve_source_pdf_asset(
+                        evidence_bundle=evidence_bundle,
+                        intent=intent,
+                    )
+                    source_pdf_url  = None
                     source_asset_id = None
-                    if algo_sources and asset_store:
-                        first_algo = algo_sources[0]
-                        filename = first_algo.get("filename", "")
-                        if filename:
-                            match_result = asset_store.find_matching_pdf(filename)
-                            if match_result:
-                                source_asset_id = match_result["asset_id"]
-                                source_pdf_url = f"/api/assets/pdf/{source_asset_id}"
+                    if source_pdf_asset:
+                        source_asset_id = source_pdf_asset.get("asset_id")
+                        if source_asset_id:
+                            source_pdf_url = f"/api/assets/pdf/{source_asset_id}"
                     
                     # Render with fidelity-first approach
-                    fidelity_renderer = ArupAlgorithmTemplateRenderer(approved_rules)
+                    fidelity_renderer = ArupAlgorithmTemplateRenderer(effective_rules)
                     fidelity_result = fidelity_renderer.render_algorithm(
                         graph_data=graph_data,
                         normalized_graph=normalized_graph,
@@ -923,14 +1166,18 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
                         render_mode_used = "fidelity_first"
                         algo_debug = {
                             "renderer": "arup_fidelity_first",
-                            "rules_version": approved_rules.get("schema_version", "unknown"),
+                            "rules_source": effective_rules.get("_source", "approved"),
+                            "rules_version": effective_rules.get("schema_version", "unknown"),
                             "stats": fidelity_result.get("stats", {}),
+                            "source_pdf_method": (source_pdf_asset or {}).get("match_method"),
+                            "source_pdf_confidence": (source_pdf_asset or {}).get("match_confidence"),
                         }
                         logger.info(
                             "AlgorithmRenderer: Using fidelity-first renderer, "
-                            "nodes=%d footer_blocks=%d",
+                            "nodes=%d footer_blocks=%d rules_source=%s",
                             len(fidelity_result.get("nodes", [])),
                             len(fidelity_result.get("footer_blocks", [])),
+                            effective_rules.get("_source", "approved"),
                         )
         except Exception as e:
             logger.warning("Fidelity-first renderer failed, will use clinical: %s", e)
@@ -950,6 +1197,14 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             if "renderer" not in algo_debug:
                 algo_debug["renderer"] = "clinical_graph_classifier"
         
+        # v1.2.0 — if the clinical renderer ran, try to pull source_graph for
+        # the fidelity critic directly from the bundle so the critic still scores.
+        if source_graph_for_fidelity is None:
+            for src in evidence_bundle.get("algorithm_sources", []):
+                if src.get("algorithm_graph"):
+                    source_graph_for_fidelity = src["algorithm_graph"]
+                    break
+        
         # Diagnostic counters for logging
         algo_chunk_count = sum(
             1 for c in evidence_bundle.get("authority_sources", [])
@@ -968,6 +1223,44 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             render_mode_used,
         )
 
+    # ── 7.4 Algorithm fidelity critic (v1.2.0) ────────────────────────────────
+    # Runs AFTER the algorithm is rendered (either fidelity-first or clinical).
+    # Scores how faithfully the rendering preserves the source graph.
+    # If tier is "divergent", bump needs_review and let FormattingAgent
+    # auto-open the split-view PDF.
+    algorithm_fidelity = None
+    if fidelity_critic is not None and algorithm_viz and source_graph_for_fidelity:
+        try:
+            # Auto-pickup source PDF for the critic if we don't have one yet.
+            # (The algorithm renderer may have already picked one up; we reuse
+            #  the 4-priority cascade for consistency.)
+            source_pdf_for_critic = _resolve_source_pdf_asset(
+                evidence_bundle=evidence_bundle,
+                intent=intent,
+            )
+            algorithm_fidelity = await fidelity_critic.review(
+                rendered_viz  = algorithm_viz,
+                source_graph  = source_graph_for_fidelity,
+                source_pdf    = source_pdf_for_critic,
+                enable_vision = None,   # fidelity_rules.json decides
+            )
+            tier = (algorithm_fidelity or {}).get("tier")
+            if tier == "divergent":
+                confidence["needs_review"] = True
+                confidence.setdefault("factors", []).append(
+                    f"Algorithm fidelity divergent "
+                    f"({algorithm_fidelity.get('fidelity_score', 0)}/100)"
+                )
+            logger.info(
+                "AlgorithmFidelityCritic: score=%s tier=%s pdf=%s",
+                algorithm_fidelity.get("fidelity_score"),
+                tier,
+                bool(source_pdf_for_critic),
+            )
+        except Exception as exc:
+            logger.warning("AlgorithmFidelityCritic failed (%s) — skipped", exc)
+            algorithm_fidelity = None
+
     # ── 7.5 Formatting Agent — UI schema generation ────────────────────────────
     # Deterministic component composition — no LLM calls.
     # evidence_context feeds the fallback diagnostic info_block and render hints.
@@ -980,6 +1273,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             "algorithm_sources": evidence_bundle.get("algorithm_sources", []),
             "algorithm_debug":   algo_debug,
         },
+        critique=critique,                       # v1.2.0
+        algorithm_fidelity=algorithm_fidelity,   # v1.2.0
     )
 
     # ── 7.6 Store schema snapshot for Designer Panel inspection ───────────────
@@ -1008,11 +1303,17 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         "conflicts_surfaced":      response.get("conflicts_surfaced", []),
         "evidence_gaps":           response.get("evidence_gaps", []),
         "algorithm_visualization": algorithm_viz,
+        # ── v1.2.0 new fields — additive, ignored by older frontend builds ──
+        "critique":                critique,
+        "critic_revised":          critic_revised,
+        "algorithm_fidelity":      algorithm_fidelity,
+        "acceptance_failures":     acceptance_failures,
         # ── Debug block (v1.1.0) — ignored by frontend, readable in DevTools ──
         "algorithm_debug": {
             "render_mode_used": render_mode_used,
             "fidelity_renderer_available": _fidelity_renderer_available,
             "chartflow_rules_approved": bool(_chartflow_rule_store and _chartflow_rule_store.get_approved_rules()) if _chartflow_rule_store else False,
+            "chartflow_rules_source":   (effective_rules or {}).get("_source") if 'effective_rules' in locals() else None,
             "retrieved_algorithm_chunks": sum(
                 1 for c in evidence_bundle.get("authority_sources", [])
                 if c.get("source_type") == "Algorithm"
