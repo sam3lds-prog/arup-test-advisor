@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import ArupDocumentFidelityRenderer from './ArupDocumentFidelityRenderer'
+import { jsPDF } from 'jspdf'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MessageBubble.jsx  v2.0.0
@@ -2475,6 +2476,104 @@ function CopyButton({ getTextFn }) {
   )
 }
 
+/* ── PdfIcon — document icon for PDF export ────────────────────────────── */
+function PdfIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
+/* ── ExportPdfButton — export response as PDF with feedback ─────────────── */
+function ExportPdfButton({ getTextFn, messageIndex, sessionId }) {
+  const [exportState, setExportState] = useState('idle') // 'idle' | 'exported' | 'error'
+
+  const handleExport = async () => {
+    if (exportState !== 'idle') return
+    const text = typeof getTextFn === 'function' ? getTextFn() : ''
+
+    // Don't export if content is empty
+    if (!text || !text.trim()) {
+      setExportState('error')
+      setTimeout(() => setExportState('idle'), 2000)
+      return
+    }
+
+    try {
+      const doc = new jsPDF()
+      const pageWidth = doc.internal.pageSize.getWidth()
+      const margin = 15
+      const maxWidth = pageWidth - (margin * 2)
+
+      // Add title
+      doc.setFontSize(14)
+      doc.setFont(undefined, 'bold')
+      doc.text('ARUP AI Test Advisor Response', margin, margin)
+
+      // Add timestamp
+      doc.setFontSize(9)
+      doc.setFont(undefined, 'normal')
+      doc.setTextColor(100)
+      const timestamp = new Date().toLocaleString()
+      doc.text(timestamp, margin, margin + 7)
+
+      // Add content
+      doc.setFontSize(10)
+      doc.setTextColor(0)
+      const lines = doc.splitTextToSize(text, maxWidth)
+      doc.text(lines, margin, margin + 15)
+
+      // Generate filename
+      const dateStr = new Date().toISOString().slice(0, 10)
+      const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-')
+      const idPart = sessionId ? `_${sessionId.slice(0, 8)}` : ''
+      const msgPart = messageIndex !== undefined ? `_msg${messageIndex}` : ''
+      const filename = `arup-response${idPart}${msgPart}_${dateStr}_${timeStr}.pdf`
+
+      // Save the PDF
+      doc.save(filename)
+      setExportState('exported')
+    } catch {
+      setExportState('error')
+    }
+    setTimeout(() => setExportState('idle'), 2000)
+  }
+
+  const isExported = exportState === 'exported'
+  const isError = exportState === 'error'
+
+  return (
+    <button
+      onClick={handleExport}
+      title={isExported ? 'Exported!' : isError ? 'Export failed — please try again' : 'Export as PDF'}
+      aria-label={isExported ? 'PDF exported' : 'Export response as PDF'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '3px 6px',
+        background: 'none', border: 'none',
+        borderRadius: 4,
+        cursor: isExported ? 'default' : 'pointer',
+        color: isExported ? 'var(--positive)' : isError ? 'var(--danger)' : 'var(--accent)',
+        transition: 'color .15s, background .15s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={e => { if (exportState === 'idle') e.currentTarget.style.background = 'var(--neutral-200)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+    >
+      {isExported ? <CheckIcon /> : <PdfIcon />}
+      {isExported && (
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
+          Exported
+        </span>
+      )}
+    </button>
+  )
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MessageBubble — main export
@@ -2601,6 +2700,14 @@ export default function MessageBubble({ message, sessionId, messageIndex, onClar
               {/* Feedback — thumbs up / down */}
               {!hasClarification && sessionId && (
                 <FeedbackButton sessionId={sessionId} messageIndex={messageIndex} />
+              )}
+              {/* Export response as PDF */}
+              {!hasClarification && !d.isWelcome && (
+                <ExportPdfButton
+                  getTextFn={() => cardBodyRef.current?.innerText ?? ''}
+                  messageIndex={messageIndex}
+                  sessionId={sessionId}
+                />
               )}
               {/* Copy full response to clipboard */}
               <CopyButton getTextFn={() => cardBodyRef.current?.innerText ?? ''} />
