@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import ArupDocumentFidelityRenderer from './ArupDocumentFidelityRenderer'
 import { jsPDF } from 'jspdf'
+import { Document, Paragraph, TextRun, AlignmentType, HeadingLevel, Packer } from 'docx'
+import { saveAs } from 'file-saver'
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MessageBubble.jsx  v2.0.0
@@ -2871,6 +2873,18 @@ function CopyButton({ getTextFn }) {
   )
 }
 
+/* ── WordIcon — document icon for Word export ─────────────────────────── */
+function WordIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M14 2v6h6M8 13l2 4 2-4 2 4 2-4"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 /* ── PdfIcon — document icon for PDF export ────────────────────────────── */
 function PdfIcon() {
   return (
@@ -2983,6 +2997,177 @@ function restoreScrollablesAndCollapsibles({ saved, clicked }) {
   })
 }
 
+
+/* ── ExportWordButton — export response as a Word document ─────────────────
+   Exports the response content as a .docx file using the docx library.
+   Extracts text content and creates a structured Word document with proper
+   formatting. Uses the same filename pattern as PDF export for consistency.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ExportWordButton({ getTextFn, messageIndex, sessionId }) {
+  // States: 'idle' | 'exporting' | 'exported' | 'error'
+  const [exportState, setExportState] = useState('idle')
+
+  const buildFilename = () => {
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-')
+    const idPart = sessionId ? `_${sessionId.slice(0, 8)}` : ''
+    const msgPart = messageIndex !== undefined ? `_msg${messageIndex}` : ''
+    return `arup-response${idPart}${msgPart}_${dateStr}_${timeStr}.docx`
+  }
+
+  const handleExport = async () => {
+    if (exportState !== 'idle') return
+
+    const text = typeof getTextFn === 'function' ? getTextFn() : ''
+    if (!text || !text.trim()) {
+      setExportState('error')
+      setTimeout(() => setExportState('idle'), 2000)
+      return
+    }
+
+    setExportState('exporting')
+
+    try {
+      // Parse the text content and create structured paragraphs
+      const lines = text.split('\n').filter(line => line.trim())
+
+      const children = [
+        // Header
+        new Paragraph({
+          text: 'ARUP AI Test Advisor Response',
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 200 },
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: new Date().toLocaleString(),
+              size: 18,
+              color: '6E6E6E',
+            }),
+          ],
+          spacing: { after: 400 },
+        }),
+      ]
+
+      // Add session ID if available
+      if (sessionId) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `Session: ${sessionId.slice(0, 12)}`,
+                size: 18,
+                color: '6E6E6E',
+              }),
+            ],
+            spacing: { after: 400 },
+          })
+        )
+      }
+
+      // Add content paragraphs
+      lines.forEach(line => {
+        const trimmedLine = line.trim()
+        if (trimmedLine) {
+          // Detect headings (lines with fewer than 60 chars and ending without punctuation)
+          const isHeading = trimmedLine.length < 60 &&
+                          !trimmedLine.endsWith('.') &&
+                          !trimmedLine.endsWith(',') &&
+                          !trimmedLine.match(/^\d+\./) // Not a numbered list
+
+          children.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: trimmedLine,
+                  bold: isHeading,
+                  size: isHeading ? 24 : 22,
+                }),
+              ],
+              spacing: { after: isHeading ? 200 : 120 },
+            })
+          )
+        }
+      })
+
+      // Add footer
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'Grounded in uploaded ARUP content. This tool supports — but does not replace — independent clinical review.',
+              size: 18,
+              italics: true,
+              color: '8C8C8C',
+            }),
+          ],
+          spacing: { before: 400 },
+        })
+      )
+
+      // Create the document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: children,
+        }],
+      })
+
+      // Generate and save the file
+      const blob = await Packer.toBlob(doc)
+      saveAs(blob, buildFilename())
+      setExportState('exported')
+    } catch (err) {
+      console.error('Word export failed:', err)
+      setExportState('error')
+    }
+    setTimeout(() => setExportState('idle'), 2500)
+  }
+
+  const isExporting = exportState === 'exporting'
+  const isExported  = exportState === 'exported'
+  const isError     = exportState === 'error'
+
+  const tooltipLabel = isExporting ? 'Creating Word document…'
+                    : isExported  ? 'Exported!'
+                    : isError     ? 'Export failed — please try again'
+                                  : 'Export as Word'
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={isExporting}
+      title={tooltipLabel}
+      aria-label={tooltipLabel}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '3px 6px',
+        background: 'none', border: 'none',
+        borderRadius: 4,
+        cursor: isExporting ? 'wait' : (isExported ? 'default' : 'pointer'),
+        color: isExported  ? 'var(--positive)'
+            : isError     ? 'var(--danger)'
+            : isExporting ? 'var(--accent2)'
+                          : 'var(--accent)',
+        opacity: isExporting ? 0.7 : 1,
+        transition: 'color .15s, background .15s, opacity .15s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={e => { if (exportState === 'idle') e.currentTarget.style.background = 'var(--neutral-200)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+    >
+      {isExported  ? <CheckIcon />
+       : isExporting ? <SpinnerIcon />
+       : <WordIcon />}
+      {(isExported || isExporting) && (
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
+          {isExporting ? 'Exporting' : 'Exported'}
+        </span>
+      )}
+    </button>
+  )
+}
 
 /* ── ExportPdfButton — export response as a rich visual PDF ────────────────
    v1.2.0: produces a pixel-accurate rendering of the response bubble with
@@ -3397,6 +3582,14 @@ export default function MessageBubble({ message, sessionId, messageIndex, onClar
               {/* Feedback — thumbs up / down */}
               {!hasClarification && sessionId && (
                 <FeedbackButton sessionId={sessionId} messageIndex={messageIndex} />
+              )}
+              {/* Export response as Word */}
+              {!hasClarification && !d.isWelcome && (
+                <ExportWordButton
+                  getTextFn={() => cardBodyRef.current?.innerText ?? ''}
+                  messageIndex={messageIndex}
+                  sessionId={sessionId}
+                />
               )}
               {/* Export response as PDF */}
               {!hasClarification && !d.isWelcome && (
