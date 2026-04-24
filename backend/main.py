@@ -64,8 +64,14 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from rich.console import Console
+from rich.panel import Panel
+from rich import print as rprint
 
 load_dotenv()
+
+# Initialize rich console for formatted output
+console = Console()
 
 from agents.prompt_agent import PromptAgent
 from agents.retrieval_agent import RetrievalAgent
@@ -941,7 +947,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
     if vector_store.count() == 0:
-        return {
+        empty_response = {
             "answer": "No documents have been indexed yet. Please upload ARUP content.",
             "recommendations": [], "citations": [],
             "confidence": {
@@ -957,6 +963,15 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             "ui_schema":               None,
             "disclaimer":              "",
         }
+        # Rich print output
+        try:
+            console.print("\n")
+            console.print(Panel.fit("[bold yellow]Empty Knowledge Base Response[/bold yellow]", border_style="yellow"))
+            console.print(empty_response)
+            console.print("\n")
+        except Exception as exc:
+            logger.warning("Rich print output failed: %s", exc)
+        return empty_response
 
     # ── Load session context ────────────────────────────────────────────────────
     clinical_context = None
@@ -1030,7 +1045,7 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         questions_asked_now = clar_state.get("questions_asked_count", questions_asked + 1)
         questions_remaining = max(0, MAX_CLARIFICATION_QUESTIONS - questions_asked_now)
 
-        return {
+        clarification_response = {
             "answer": "To give you the most accurate recommendation, I have one question:",
             "recommendations": [], "citations": [],
             "confidence": {
@@ -1053,6 +1068,15 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             "ui_schema":               None,
             "disclaimer":              "",
         }
+        # Rich print output
+        try:
+            console.print("\n")
+            console.print(Panel.fit("[bold magenta]Clarification Request[/bold magenta]", border_style="magenta"))
+            console.print(clarification_response)
+            console.print("\n")
+        except Exception as exc:
+            logger.warning("Rich print output failed: %s", exc)
+        return clarification_response
 
     # ── 3. Retrieval Agent — planner-driven vector search ────────────────────────
     raw_chunks = await retrieval_agent.retrieve(intent)
@@ -1329,7 +1353,8 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             response.get("recommendations", []),
         )
 
-    return {
+    # ── Assemble final response ────────────────────────────────────────────────
+    final_response = {
         "answer":                  response.get("answer", ""),
         "recommendations":         response.get("recommendations", []),
         "citations":               response.get("citations", []),
@@ -1375,6 +1400,21 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
             "This tool supports — and does not replace — independent clinical review."
         ),
     }
+
+    # ── Rich print output (formatted response display) ─────────────────────────
+    try:
+        console.print("\n")
+        console.print(Panel.fit(
+            "[bold cyan]AI Test Advisor Response[/bold cyan]",
+            border_style="cyan"
+        ))
+        console.print(final_response)
+        console.print("\n")
+    except Exception as exc:
+        # Graceful degradation — don't break response delivery if rich print fails
+        logger.warning("Rich print output failed: %s", exc)
+
+    return final_response
 
 
 if __name__ == "__main__":
