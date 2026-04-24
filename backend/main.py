@@ -890,6 +890,45 @@ async def feedback(request: FeedbackRequest):
     return {"ok": True}
 
 
+# ── Export Plain Text ──────────────────────────────────────────────────────────
+
+from agents.plain_text_formatter import format_from_chat_response
+from fastapi.responses import PlainTextResponse
+
+class ExportPlainTextRequest(BaseModel):
+    session_id:    str
+    message_index: int
+    response_data: dict  # Full response object from chat
+
+@app.post("/export/plain-text", response_class=PlainTextResponse)
+async def export_plain_text(request: ExportPlainTextRequest):
+    """
+    Export a clinical response as plain-text report.
+
+    Returns a print-optimized plain-text document suitable for
+    clinical documentation and printing.
+    """
+    try:
+        # Add session and message metadata to response data
+        response_data = request.response_data.copy()
+        response_data.setdefault('session_id', request.session_id)
+        response_data.setdefault('message_index', request.message_index)
+
+        # Generate plain-text report
+        plain_text_report = format_from_chat_response(response_data)
+
+        return PlainTextResponse(
+            content=plain_text_report,
+            media_type="text/plain; charset=utf-8"
+        )
+    except Exception as e:
+        logger.error(f"Plain-text export failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Plain-text export failed: {str(e)}"
+        )
+
+
 # ── Chat ───────────────────────────────────────────────────────────────────────
 
 @app.post("/chat")

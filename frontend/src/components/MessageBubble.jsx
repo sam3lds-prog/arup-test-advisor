@@ -2897,6 +2897,18 @@ function PdfIcon() {
   )
 }
 
+/* ── DocumentIcon — document icon for plain-text export ───────────────── */
+function DocumentIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M14 2v6h6M16 11H8M16 15H8M12 19H8"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+}
+
 /* ── Scrollable expansion helpers for PDF export ─────────────────────────
    html2canvas only captures what's visible inside scroll containers. Before
    we rasterise, we walk every descendant and — for any element that is
@@ -3160,6 +3172,116 @@ function ExportWordButton({ getTextFn, messageIndex, sessionId }) {
       {isExported  ? <CheckIcon />
        : isExporting ? <SpinnerIcon />
        : <WordIcon />}
+      {(isExported || isExporting) && (
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
+          {isExporting ? 'Exporting' : 'Exported'}
+        </span>
+      )}
+    </button>
+  )
+}
+
+/* ── ExportPlainTextButton — export response as plain-text clinical report ─
+   Calls the backend /export/plain-text endpoint which uses the
+   plain_text_formatter.py to generate a print-optimized plain-text document.
+   This format is ideal for clinical documentation and printing on paper.
+   ═══════════════════════════════════════════════════════════════════════════ */
+function ExportPlainTextButton({ responseData, messageIndex, sessionId }) {
+  // States: 'idle' | 'exporting' | 'exported' | 'error'
+  const [exportState, setExportState] = useState('idle')
+
+  const buildFilename = () => {
+    const dateStr = new Date().toISOString().slice(0, 10)
+    const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '-')
+    const idPart = sessionId ? `_${sessionId.slice(0, 8)}` : ''
+    const msgPart = messageIndex !== undefined ? `_msg${messageIndex}` : ''
+    return `arup-response${idPart}${msgPart}_${dateStr}_${timeStr}.txt`
+  }
+
+  const handleExport = async () => {
+    if (exportState !== 'idle') return
+
+    if (!responseData || typeof responseData !== 'object') {
+      setExportState('error')
+      setTimeout(() => setExportState('idle'), 2000)
+      return
+    }
+
+    setExportState('exporting')
+
+    try {
+      // Call backend API endpoint
+      const response = await fetch('http://localhost:8010/export/plain-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          message_index: messageIndex,
+          response_data: responseData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`)
+      }
+
+      // Get plain text from response
+      const plainText = await response.text()
+
+      // Create blob and download
+      const blob = new Blob([plainText], { type: 'text/plain; charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = buildFilename()
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      setExportState('exported')
+    } catch (err) {
+      console.error('Plain-text export failed:', err)
+      setExportState('error')
+    }
+    setTimeout(() => setExportState('idle'), 2500)
+  }
+
+  const isExporting = exportState === 'exporting'
+  const isExported  = exportState === 'exported'
+  const isError     = exportState === 'error'
+
+  const tooltipLabel = isExporting ? 'Creating plain-text report…'
+                    : isExported  ? 'Exported!'
+                    : isError     ? 'Export failed — please try again'
+                                  : 'Export as plain text'
+
+  return (
+    <button
+      onClick={handleExport}
+      disabled={isExporting}
+      title={tooltipLabel}
+      aria-label={tooltipLabel}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 4,
+        padding: '3px 6px',
+        background: 'none', border: 'none',
+        borderRadius: 4,
+        cursor: isExporting ? 'wait' : (isExported ? 'default' : 'pointer'),
+        color: isExported  ? 'var(--positive)'
+            : isError     ? 'var(--danger)'
+            : isExporting ? 'var(--accent2)'
+                          : 'var(--accent)',
+        opacity: isExporting ? 0.7 : 1,
+        transition: 'color .15s, background .15s, opacity .15s',
+        flexShrink: 0,
+      }}
+      onMouseEnter={e => { if (exportState === 'idle') e.currentTarget.style.background = 'var(--neutral-200)' }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+    >
+      {isExported  ? <CheckIcon />
+       : isExporting ? <SpinnerIcon />
+       : <DocumentIcon />}
       {(isExported || isExporting) && (
         <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', lineHeight: 1 }}>
           {isExporting ? 'Exporting' : 'Exported'}
@@ -3587,6 +3709,14 @@ export default function MessageBubble({ message, sessionId, messageIndex, onClar
               {!hasClarification && !d.isWelcome && (
                 <ExportWordButton
                   getTextFn={() => cardBodyRef.current?.innerText ?? ''}
+                  messageIndex={messageIndex}
+                  sessionId={sessionId}
+                />
+              )}
+              {/* Export response as plain text */}
+              {!hasClarification && !d.isWelcome && (
+                <ExportPlainTextButton
+                  responseData={d}
                   messageIndex={messageIndex}
                   sessionId={sessionId}
                 />
