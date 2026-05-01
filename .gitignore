@@ -55,3 +55,12 @@ backend/.env
 .vscode/
 .idea/
 *.swp
+
+# v1.3.0 — Hugging Face stack
+backend/.hf_cache/
+backend/.venv/
+data/chroma.bak.*/
+data/.reindex_manifest.json
+backend/eval/results/
+backend/main.py.pre-hf-bak
+start.sh.pre-hf-bak
