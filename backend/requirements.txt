@@ -7,9 +7,26 @@ pandas>=2.2.0
 python-multipart>=0.0.12
 python-dotenv>=1.0.1
 pydantic>=2.9.0
+
 # v1.2.0 — optional dependencies for AlgorithmFidelityCritic vision tier
 # Only needed if you enable the vision tier via /designer/fidelity.
 # All three degrade gracefully — missing packages simply disable the vision
 # second-opinion, deterministic fidelity scoring continues to work.
-openai>=1.50.0       # GPT-4o-mini vision (second-opinion; only when vision_provider ∈ {"openai","both"})
+openai>=1.50.0       # GPT-4o-mini vision (second-opinion; only when vision_provider in {"openai","both"})
 pdf2image>=1.17.0    # Rasterise PDF page 1 for vision input
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v1.3.0 — Hugging Face stack (M1-tested pins)
+# ─────────────────────────────────────────────────────────────────────────────
+# These pins were chosen for stable MPS support on Apple Silicon. We use
+# sentence-transformers' CrossEncoder rather than FlagEmbedding because
+# FlagEmbedding pulls heavy transitive deps (peft, datasets, occasionally
+# flash-attn) that are problematic on macOS arm64 — flash-attn has no M1
+# wheel.
+torch==2.3.1                    # Stable MPS support
+transformers==4.44.2            # Compatible with sentence-transformers 3.x
+tokenizers>=0.19,<0.20
+sentence-transformers==3.0.1    # SentenceTransformer + CrossEncoder
+accelerate==0.33.0              # Required by transformers for device mgmt
+safetensors>=0.4.3
+huggingface-hub>=0.24,<0.26
