@@ -141,9 +141,18 @@ except ImportError:
     _fidelity_critic_available = False
     AlgorithmFidelityCritic = None
 
+# ── v1.3.0 — Hugging Face stack (Phases 1–4) ──────────────────────────────────
+# Optional. Failure to import is non-fatal; behaviour falls back to v1.2.0.
+try:
+    from hf_components import HfComponents
+    _hf_available = True
+except ImportError:
+    _hf_available = False
+    HfComponents = None
+
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="ARUP AI Test Advisor API", version="1.2.0")
+app = FastAPI(title="ARUP AI Test Advisor API", version="1.3.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -176,6 +185,20 @@ async def _global_exception_handler(request: Request, exc: Exception):
 @app.on_event("startup")
 async def startup():
     init_db()
+
+    # ── v1.3.0 — HF subsystems (additive, fail-open) ────────────────────────
+    app.state.hf = None
+    if _hf_available:
+        try:
+            app.state.hf = HfComponents.init(vector_store, retrieval_agent)
+            logger.info(
+                "HF stack ready — embedding=%s reranker=%s",
+                getattr(app.state.hf.embedding_provider, "name", "?"),
+                getattr(app.state.hf.reranker, "name", None) or "disabled",
+            )
+        except Exception:
+            logger.exception("HF init failed at startup; continuing without HF stack")
+            app.state.hf = None
 
 # ── Components ─────────────────────────────────────────────────────────────────
 vector_store      = VectorStore()
@@ -416,6 +439,12 @@ async def health():
             "vision_enabled": fidelity_critic.get_rules().get("vision_check_enabled", False)
                               if fidelity_critic is not None else False,
         },
+        # v1.3.0 — Hugging Face stack
+        "huggingface": (
+            app.state.hf.health()
+            if getattr(app.state, "hf", None)
+            else {"enabled": False, "reason": "module not available or init failed"}
+        ),
     }
 
 
@@ -1012,6 +1041,10 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
         clarification_state=clar_state,
     )
 
+    # v1.3.0 — additive NER enrichment (no-op when CLINICAL_NER_ENABLED=false)
+    if getattr(app.state, "hf", None):
+        intent = app.state.hf.enrich_intent(intent, query)
+
     # ── 2. Clarification gate (backend-enforced sequencing) ───────────────────
     #
     # The LLM may have set clarification.needed=True.  The backend OVERRIDES
@@ -1080,6 +1113,10 @@ async def chat(request: ChatRequest, background_tasks: BackgroundTasks):
 
     # ── 3. Retrieval Agent — planner-driven vector search ────────────────────────
     raw_chunks = await retrieval_agent.retrieve(intent)
+
+    # v1.3.0 — NER-driven secondary retrieval + cross-encoder rerank
+    if getattr(app.state, "hf", None):
+        raw_chunks = app.state.hf.enrich_and_rerank(query, intent, raw_chunks, vector_store)
 
     # ── 4. Evidence Packager ───────────────────────────────────────────────────
     intent_type     = intent.get("intent_type", "ambiguous")

@@ -215,6 +215,19 @@ info "Installing/verifying Python dependencies…"
 "$VENV/bin/pip" install --quiet -r "$BACKEND/requirements.txt"
 info "Python dependencies ready ✓"
 
+# ── Hugging Face stack — env exports (v1.3.0) ────────────────────────────────
+# Required for stable MPS operation on Apple Silicon. Without
+# PYTORCH_ENABLE_MPS_FALLBACK=1, certain ops (cumsum, scatter_reduce, etc.)
+# raise NotImplementedError on first inference. The other exports suppress
+# noisy warnings and route the HF cache into the project tree for clean
+# uninstall/inspection.
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+export TOKENIZERS_PARALLELISM=false
+export HF_HOME="${HF_HOME:-$BACKEND/.hf_cache}"
+export HF_HUB_DISABLE_TELEMETRY=1
+export HF_HUB_DISABLE_PROGRESS_BARS=1
+mkdir -p "$HF_HOME"
+
 # ── Node dependencies ─────────────────────────────────────────────────────────
 if [ "$API_ONLY" = false ]; then
   step "Node dependencies"
