@@ -2,40 +2,36 @@
 
 *Why clinical AI needs architecture before ambition.*
 
-Healthcare does not need another chatbot that sounds confident. It needs a copilot that earns the right to help.
+We are building an application that helps medical specialists make decisions that cannot be wrong - the calls that decide a patient's care.
 
-The ARUP AI Test Advisor proof of concept starts with a narrow job - help providers select diagnostic tests from governed clinical content - but the larger idea is broader: build AI for decisions where being almost right is not enough.
+Not a chatbot that sounds confident. An authoritative copilot: it answers only when anchored to cited fact, hands the provider customized building blocks to shape a care plan, and says so plainly the moment it is unsure. We are building it inside the most regulated - and most rightly AI-hesitant - industry on earth.
 
 ## Trust Is the Product
 
-In healthcare, hesitation is not resistance to innovation. It is a requirement. A provider needs more than a fluent answer; they need evidence they can inspect, gaps they can see, and a clear handoff when the system is unsure.
-
-So the design principle is simple: the AI should feel helpful, but it must never pretend to be authoritative without proof.
+In healthcare, hesitation is not resistance to innovation. It is a requirement. The contradiction is the brief: today's models hallucinate and are trained to please, yet nothing reads thousands of guidelines faster to find the passage that answers a question. Our job: engineer away the first weakness to safely harness the second.
 
 ## Own the Boundary, or the Model Owns You
 
-The model does not roam the data. It works through a governed API layer, a retrieval plan, and an evidence bundle. That boundary is the product's first safety feature: the organization controls what can be searched, what can be cited, and what never reaches the model.
+The model never roams the data. It works through a governed API layer, a retrieval plan, and an evidence bundle. The organization - not the model - controls what can be searched, cited, or reached at all. That boundary is the product's first safety feature.
 
 ## Split Intelligence Into Jobs You Can Audit
 
-The system is not one giant prompt. It is a farm of specialized agents: intent, retrieval, evidence packaging, response generation, clinical critique, confidence scoring, algorithm rendering, and formatting. Each agent has one job and a clear artifact to hand forward.
-
-That makes the workflow inspectable. If something is weak, the system can identify where: the question, the evidence, the answer, the review, or the rendering.
+The system is not one giant prompt. It is a farm of eight specialized agents - intent, retrieval, evidence packaging, response, critique, confidence, rendering, and formatting. Each has one job and a clean artifact to hand forward, so when something is weak, you can see exactly where.
 
 ## Make Uncertainty Visible Before It Becomes Risk
 
-The review cycle is deliberately adversarial. A critic checks stewardship, safety, evidence gaps, and missed alternatives. Consensus is not another vibe from another model; it is deterministic logic. Confidence is also rule-based, using source coverage, retrieval strength, citations, and reranking signals.
-
-When the answer falls below threshold, the system does not improvise. It escalates.
+Review is deliberately adversarial. Three reviewers - stewardship, safety, and skeptic - must agree before an answer ships; disagree once and the debate re-runs; conflict and it escalates to a human. Confidence is then scored by a deterministic agent with zero LLM calls - because the one thing you cannot have guarding your safety gate is a model that wants to please you.
 
 ## Format Is Part of the Decision
 
-Clinical guidance is not always best delivered as prose. Sometimes it should be a table, citation trail, warning, diagnostic pathway, or split view against the source PDF. That is why the Formatting Agent turns the response into a deterministic UI schema, using the right component for the job.
+A correct answer in the wrong shape is a failed answer. The Formatting Agent turns clinical JSON into a deterministic UI schema - tables, citations, warnings, diagnostic pathways - choosing the right component for the job.
 
 ## The Copilot Scale
 
-Today this is a test-selection advisor. The final phase is larger: a provider copilot that reads lab history, encounter context, prior orders, and trusted guidance to draft cited care-plan building blocks before the decision is made.
+Today this is a test-selection advisor. The final phase is larger: a provider copilot that reads lab history, encounter context, and prior orders to draft cited care-plan building blocks before the decision is made.
 
-That expands the surface area from one diagnostic question to thousands of provider decisions per health system each month - and, at national scale, millions of moments where better evidence, better timing, and safer handoffs matter.
+The magnitude is the point. Lab results inform an estimated 70% of clinical decisions while consuming a sliver of spend - the highest-leverage data in medicine. The US runs roughly 13 billion lab tests a year. Move even a fraction toward grounded, fail-safe guidance and the impact compounds into millions of safer decisions.
 
-This series will unpack the architecture behind it: Hybrid Architecture, the Agentic Farm, the Debating Cycle, and the Formatting Agent.
+Zero ungrounded claims. Three reviewers. One clean handoff. That is the bar - and we built to it.
+
+This series unpacks the architecture behind it: Hybrid Architecture, the Agentic Farm, the Debating Cycle, and the Formatting Agent.

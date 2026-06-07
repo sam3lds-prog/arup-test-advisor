@@ -52,9 +52,9 @@ The Formatting Agent turns clinical JSON into a deterministic UI schema: cards, 
 
 Today: diagnostic test selection grounded in ARUP content.
 
-Final phase: a provider copilot that reads lab history, encounter context, prior orders, and trusted guidance to draft cited care-plan building blocks.
+Final phase: a provider copilot that reads lab history, encounter context, and prior orders to draft cited care-plan building blocks.
 
-That is a surface area measured in thousands of provider decisions per health system each month - and millions nationally.
+The magnitude: ~70% of clinical decisions are informed by lab results, and the US runs roughly 13 billion lab tests a year. Move a fraction of those moments to grounded, fail-safe guidance - and the impact compounds into millions of safer decisions.
 
 ## Slide 8 - Three Takeaways
 
