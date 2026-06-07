@@ -356,29 +356,38 @@ def slide_7() -> Image.Image:
         y=150,
         title_font=F["title_small"],
     )
-    y = 730
+    y = 640
     steps = [
         ("POC", "test selection"),
         ("Copilot", "care-plan blocks"),
-        ("Health system", "thousands of decisions/month"),
+        ("Care plan", "drafted, cited"),
     ]
     bw = 270
     for i, (name, sub) in enumerate(steps):
         x = MARGIN + i * (bw + 42)
-        rounded_box(draw, (x, y, x + bw, y + 138), WHITE, RED if i == 1 else INK, radius=18, width=3)
-        draw.text((x + 30, y + 30), name, font=F["body_bold"], fill=RED if i == 1 else INK)
-        draw_wrapped(draw, sub, (x + 30, y + 76), F["small"], MUTED, bw - 60, 27)
+        rounded_box(draw, (x, y, x + bw, y + 128), WHITE, RED if i == 1 else INK, radius=18, width=3)
+        draw.text((x + 30, y + 28), name, font=F["body_bold"], fill=RED if i == 1 else INK)
+        draw_wrapped(draw, sub, (x + 30, y + 72), F["small"], MUTED, bw - 60, 27)
         if i < 2:
-            draw.line((x + bw + 10, y + 69, x + bw + 36, y + 69), fill=RED, width=4)
-    rounded_box(draw, (MARGIN, 990, W - MARGIN, 1118), INK, INK, radius=14)
+            draw.line((x + bw + 10, y + 64, x + bw + 36, y + 64), fill=RED, width=4)
+    stats = [("70%", "of clinical decisions are informed by lab results"),
+             ("~13B", "lab tests run in the US every year")]
+    sy = 800
+    sw = (W - 2 * MARGIN - 30) // 2
+    for i, (num, label) in enumerate(stats):
+        x = MARGIN + i * (sw + 30)
+        rounded_box(draw, (x, sy, x + sw, sy + 162), WHITE, LINE, radius=16, width=2)
+        draw.text((x + 28, sy + 20), num, font=F["number"], fill=RED)
+        draw_wrapped(draw, label, (x + 28, sy + 92), F["small"], INK, sw - 56, 30)
+    rounded_box(draw, (MARGIN, 1004, W - MARGIN, 1170), INK, INK, radius=14)
     draw_wrapped(
         draw,
-        "A surface area measured in thousands of provider decisions per health system each month - and millions nationally.",
-        (MARGIN + 34, 1024),
+        "Move a fraction of those moments to grounded, fail-safe guidance - and the impact compounds into millions of safer decisions.",
+        (MARGIN + 34, 1028),
         F["body_bold"],
         WHITE,
         W - 2 * MARGIN - 68,
-        42,
+        40,
     )
     return img
 
