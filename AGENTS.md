@@ -36,8 +36,9 @@ sudo apt-get install -y python3.12-venv
 
 ### Environment / secrets
 
-- Copy `backend/.env.example` → `backend/.env` and set a valid `ANTHROPIC_API_KEY`.
+- Copy `backend/.env.example` → `backend/.env` and set a valid `ANTHROPIC_API_KEY` (or export it in the shell before starting uvicorn).
 - `/chat` and the full agent pipeline require a working Anthropic key; `/health`, `/upload`, `/documents`, and deterministic formatters work without it.
+- After adding or rotating `ANTHROPIC_API_KEY`, restart the backend process so `load_dotenv()` picks up the new value.
 - First backend start may download Hugging Face embedding/reranker models (~1–2 GB) into `backend/.hf_cache`.
 
 ### Lint / test / build
